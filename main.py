@@ -6,7 +6,7 @@ with open('canvas.html', 'r', encoding='utf-8') as c:
     code = c.read()
     code = code.replace('{lap_no}', str(lap_no))
 st.components.v1.html(code, height=220)
-if lap_no > 45:
+if lap_no > 45 and lap_no != 60:
     st.warning("🛞 Tires CRITICAL! Consider Pitting Soon.")
 elif lap_no == 60:
     if st.button("🏁 Finish Race!"):
