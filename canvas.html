@@ -5,8 +5,8 @@ const c = document.getElementById('track').getContext('2d')
 //RED= track done
 c.fillStyle = 'blue'
 // 800(pixels)/60(laps) = 13.33(pixels,perlap)
-c.fillRect(0,0,{lap_no}*13.33,200)
+c.fillRect(0,0,{lap_no}*13,200)
 // WHITE + track left
 c.fillStyle='white'
-c.fillRect({lap_no}*13.33,0,800-{lap_no}*13.33,200)
+c.fillRect({lap_no}*13,0,800-{lap_no}*13,200)
 </script>
