@@ -30,3 +30,20 @@ elif lap_no == 60:
 else:
     pass
 st.metric("Tire Wear:", f"{st.session_state.tire_wear}%")
+
+
+def lap_time(wear):
+    base_time = 90
+    if 0 <= wear <= 30:
+        lt = base_time
+    elif 30 < wear <= 70:
+        penalty = (wear - 30)*0.1
+        lt = base_time+penalty
+    else:
+        penalty = 4  # 70-30 * 0.1 for penalty at 70
+        extra = (wear-70)*0.3
+        lt = base_time+penalty+extra
+    return lt
+
+
+st.metric("LAP TIME:", f"{lap_time(st.session_state.tire_wear)} s")
