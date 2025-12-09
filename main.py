@@ -62,12 +62,14 @@ def lap_time(w):
 # realtime based on slider
 st.metric("LAP TIME:", f"{lap_time(wear(lap_no))} s")
 
-"""THE RACE SIMULATION IS FOR ENTIRE RACE, WHERE AS METRIC AND THE SLIDER IS FOR PER LAP TIRE WEAR"""
+"""Slider + metrics showing “current lap” wear/time.
+Selectbox controlling pit lap for the full‑race simulation and chart
+"""
 
 
 def race_simulation(pit_lap, pit_penalty=25):
     total_time = 0
-    w = 0
+    w = 0  # fresh tyres at every new race simulation
     time_record = []
     lap_n = []
     for lap in range(1, 61):
