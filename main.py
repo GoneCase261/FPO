@@ -1,10 +1,12 @@
 import streamlit as st
 import pandas as pd
 
+st.set_page_config(layout="wide")
+
 if "tire_wear" not in st.session_state:
     st.session_state.tire_wear = 0
 
-st.title('🏎️ F1 Pit Optimizer v0.1 - Week 1')
+st.title('🏎️ F1 Pit Optimizer v0.4 - Week 4')
 lap_no = st.slider('Lap Progress:', 0, 60, 0)
 
 with open('canvas.html', 'r', encoding='utf-8') as c:
@@ -62,9 +64,8 @@ def lap_time(w):
 # realtime based on slider
 st.metric("LAP TIME:", f"{lap_time(wear(lap_no))} s")
 
-"""Slider + metrics showing “current lap” wear/time.
-Selectbox controlling pit lap for the full‑race simulation and chart
-"""
+# Slider + metrics showing “current lap” wear/time.
+# Selectbox controlling pit lap for the full‑race simulation and chart
 
 
 def race_simulation(pit_lap, pit_penalty=25):
@@ -85,18 +86,25 @@ def race_simulation(pit_lap, pit_penalty=25):
     return total_time, lap_n, time_record  # cummulative time after every lap
 
 
-# lets u select which lap to pit in, in the UI
-pit_lap = st.selectbox("Pit lap:", list(range(1, 61)), index=1)
+# lets u select which lap to pit in, in the UI itself
+# index is the default selected val
+pit_lapA = st.selectbox("Pit lap A:", list(range(1, 61)), index=0)
+pit_lapB = st.selectbox("Pit lap B:", list(range(1, 61)), index=0)
 
-t1, ln1, tr1 = race_simulation(pit_lap)
-st.write(f"{t1:.2f}s")
-st.write(f"{ln1}")
-st.write(f"{tr1}")
+t1, ln1, tr1 = race_simulation(pit_lapA)
+t2, ln2, tr2 = race_simulation(pit_lapB)
 
+if t1 > t2:
+    st.write(f"Best: pit at lap {pit_lapB} ({t2} s)")
+    st.write(f"{t1-t2} s faster.")
+else:
+    st.write(f"Best: pit at lap {pit_lapA} ({t1} s)")
+    st.write(f"{t2-t1} s faster.")
 # data converted into tabular form
 df = pd.DataFrame({
-    'time': tr1,
-    'lap': ln1
+    'Lap no': ln1,
+    f"Time pit {pit_lapA}": tr1,
+    f"Time pit {pit_lapB}": tr2
 })
-
-st.line_chart(df, x='lap', y='time')
+# line graph
+st.line_chart(df.set_index('Lap no'))
