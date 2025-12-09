@@ -42,7 +42,7 @@ def wear(l):
     return tw
 
 
-st.metric("Tire Wear:", f"{wear(lap_no)}%")
+st.metric("Tire Wear:", f"{wear(lap_no)}%")  # realtime based on slider
 
 
 def lap_time(w):
@@ -59,7 +59,10 @@ def lap_time(w):
     return lt
 
 
+# realtime based on slider
 st.metric("LAP TIME:", f"{lap_time(wear(lap_no))} s")
+
+"""THE RACE SIMULATION IS FOR ENTIRE RACE, WHERE AS METRIC AND THE SLIDER IS FOR PER LAP TIRE WEAR"""
 
 
 def race_simulation(pit_lap, pit_penalty=25):
@@ -68,6 +71,7 @@ def race_simulation(pit_lap, pit_penalty=25):
     time_record = []
     lap_n = []
     for lap in range(1, 61):
+        # purely linear wear increase, not based on wear function
         w = min(w+2, 100)
         laptime = lap_time(w)
         total_time += laptime
@@ -76,9 +80,10 @@ def race_simulation(pit_lap, pit_penalty=25):
             total_time += pit_penalty
         lap_n.append(lap)
         time_record.append(total_time)
-    return total_time, lap_n, time_record
+    return total_time, lap_n, time_record  # cummulative time after every lap
 
 
+# lets u select which lap to pit in, in the UI
 pit_lap = st.selectbox("Pit lap:", list(range(1, 61)), index=1)
 
 t1, ln1, tr1 = race_simulation(pit_lap)
@@ -86,8 +91,10 @@ st.write(f"{t1:.2f}s")
 st.write(f"{ln1}")
 st.write(f"{tr1}")
 
+# data converted into tabular form
 df = pd.DataFrame({
     'time': tr1,
     'lap': ln1
 })
+
 st.line_chart(df, x='lap', y='time')
