@@ -1,12 +1,11 @@
 import streamlit as st
-import pandas as pd
 
 st.set_page_config(layout="wide")
 
 if "tire_wear" not in st.session_state:
     st.session_state.tire_wear = 0
 
-st.title('🏎️ F1 Pit Optimizer v1.0 - Week 6')
+st.title('🏎️ F1 Pit Optimizer v2.0 - Week 6')
 lap_no = st.slider('Lap Progress:', 0, 60, 0)
 
 with open('canvas.html', 'r', encoding='utf-8') as c:
@@ -78,9 +77,10 @@ def race_simulation(p1, p2, pit_penalty=25):
         w = min(w+2, 100)
         laptime = lap_time(w)
         total_time += laptime
-        if p1 == p2:
-            w = 0
-            total_time += pit_penalty
+        if p1 == p2 and p1 != 0:
+            if p1 == lap:
+                w = 0
+                total_time += pit_penalty
         else:
             if lap == p1 and p1 != 0:
                 w = 0
@@ -95,48 +95,17 @@ def race_simulation(p1, p2, pit_penalty=25):
     return total_time, lap_n, time_record  # cummulative time after every lap
 
 
-# lets u select which lap to pit in, in the UI itself
-# index is the default selected val
-c1, c2 = st.columns(2)
-with c1:
-    p1 = st.selectbox("Pit 1:", list(range(0, 61)), index=0)
-with c2:
-    p2 = st.selectbox("Pit 2:", list(range(0, 61)), index=0)
-# pit_lapA = st.selectbox("Pit lap A:", list(range(1, 61)), index=0)
-# pit_lapB = st.selectbox("Pit lap B:", list(range(1, 61)), index=0)
+pits = []
+time = []
+for pit1 in range(0, 61):
+    for pit2 in range(0, 61):
+        t, ln, tr = race_simulation(pit1, pit2)
+        pits.append(f"({pit1}, {pit2})")
+        time.append(t)
 
-t1, ln1, tr1 = race_simulation(p1, p2)
-st.write(f"total time:{t1}s")
-# t2, ln2, tr2 = race_simulation(pit_lapB)
-# pits = []
-# time_pits = []
-# for p1, p2 in range(1, 61):
-#     t, ln, tr = race_simulation(p1, p2)
-#     pits.append(p)
-#     time_pits.append(t)
-
-# a = min(time_pits)
-# c = max(time_pits)
-# b = pits[time_pits.index(a)]
-# d = pits[time_pits.index(c)]
-# st.write(f"Overall best single pit lap: {b} (total {a:.2f} s). ")
-# st.write(f"This is {c-a:.2f} s faster than pit at {d}.")
-
-
-# if t1 > t2:
-#     st.write(f"Best: pit at lap {pit_lapB} ({t2} s)")
-#     st.write(f"{t1-t2} s faster.")
-# else:
-#     st.write(f"Best: pit at lap {pit_lapA} ({t1} s)")
-#     st.write(f"{t2-t1} s faster.")
-
-
-# -----GRAPH-------
-# data converted into tabular form
-# df = pd.DataFrame({
-#     'Lap no': ln1,
-#     f"Time pit {pit_lapA}": tr1,
-#     f"Time pit {pit_lapB}": tr2
-# })
-# # line graph
-# st.line_chart(df.set_index('Lap no'))
+a = min(time)
+c = max(time)
+b = pits[time.index(a)]
+d = pits[time.index(c)]
+st.write(f"Overall best single pit lap: {b} (total {a:.2f} s). ")
+st.write(f"This is {c-a:.2f} s faster than pit at {d}.")
