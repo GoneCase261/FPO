@@ -88,23 +88,40 @@ def race_simulation(pit_lap, pit_penalty=25):
 
 # lets u select which lap to pit in, in the UI itself
 # index is the default selected val
-pit_lapA = st.selectbox("Pit lap A:", list(range(1, 61)), index=0)
-pit_lapB = st.selectbox("Pit lap B:", list(range(1, 61)), index=0)
+# pit_lapA = st.selectbox("Pit lap A:", list(range(1, 61)), index=0)
+# pit_lapB = st.selectbox("Pit lap B:", list(range(1, 61)), index=0)
 
-t1, ln1, tr1 = race_simulation(pit_lapA)
-t2, ln2, tr2 = race_simulation(pit_lapB)
+# t1, ln1, tr1 = race_simulation(pit_lapA)
+# t2, ln2, tr2 = race_simulation(pit_lapB)
+pits = []
+time_pits = []
+for p in range(1, 61):
+    t, ln, tr = race_simulation(p)
+    pits.append(p)
+    time_pits.append(t)
 
-if t1 > t2:
-    st.write(f"Best: pit at lap {pit_lapB} ({t2} s)")
-    st.write(f"{t1-t2} s faster.")
-else:
-    st.write(f"Best: pit at lap {pit_lapA} ({t1} s)")
-    st.write(f"{t2-t1} s faster.")
+a = min(time_pits)
+c = max(time_pits)
+b = pits[time_pits.index(a)]
+d = pits[time_pits.index(c)]
+st.write(f"Overall best single pit lap: {b} (total {a:.2f} s). ")
+st.write(f"This is {c-a:.2f} s faster than pit at {d}.")
+
+
+# if t1 > t2:
+#     st.write(f"Best: pit at lap {pit_lapB} ({t2} s)")
+#     st.write(f"{t1-t2} s faster.")
+# else:
+#     st.write(f"Best: pit at lap {pit_lapA} ({t1} s)")
+#     st.write(f"{t2-t1} s faster.")
+
+
+# -----GRAPH-------
 # data converted into tabular form
-df = pd.DataFrame({
-    'Lap no': ln1,
-    f"Time pit {pit_lapA}": tr1,
-    f"Time pit {pit_lapB}": tr2
-})
-# line graph
-st.line_chart(df.set_index('Lap no'))
+# df = pd.DataFrame({
+#     'Lap no': ln1,
+#     f"Time pit {pit_lapA}": tr1,
+#     f"Time pit {pit_lapB}": tr2
+# })
+# # line graph
+# st.line_chart(df.set_index('Lap no'))
