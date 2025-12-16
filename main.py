@@ -5,7 +5,7 @@ import streamlit as st
 if "tire_wear" not in st.session_state:
     st.session_state.tire_wear = 0
 
-st.title('🏎️ F1 Pit Optimizer v2.0 - Week 7')
+st.title('🏎️ F1 Pit Optimizer v1.0 - Week 8')
 lap_no = st.slider('Lap Progress:', 0, 60, 0)
 
 with open('canvas.html', 'r', encoding='utf-8') as c:
@@ -45,7 +45,7 @@ def wear(l):
 
 st.metric("Tire Wear:", f"{wear(lap_no)}%")  # realtime based on slider
 tire_comp = st.selectbox(
-    "Tire compound:", ["SOFT", "MEDIUM", 'HARD'], index=0)
+    "Tire compound:", ["SOFT", "MEDIUM", 'HARD', 'INTERMEDIATE', 'WET'], index=0)
 rain = st.slider("Rain", 0.0, 1.0, 0.0, 0.1)
 
 
@@ -61,14 +61,26 @@ def lap_time(w, tc, r):
         extra = (w-70)*0.3
         lt = base_time+penalty+extra
 
+# BASE TIME FOR EACH TYRE TYPE (WITHOUT RAIN)
     if tc == "SOFT":  # tire compound factor
         lt = lt-0.5
     elif tc == "MEDIUM":
         lt += 0
     elif tc == "HARD":
         lt += 0.5
-
-    lt += r*3  # rain factor
+    elif tc == "INTERMEDIATE":
+        lt += 1.0
+    elif tc == "WET":
+        lt += 2.0
+    # RAIN FACTOR EFFECTS
+    if tc in ['SOFT', 'MEDIUM', 'HARD']:
+        lt += r*4
+    elif tc in ['INTERMEDIATE', 'WET']:
+        if r < 0.3:  # self set rain threshold
+            dry_penalty = (0.3-r)*3
+        elif r >= 0.3:
+            dry_penalty = 0
+        lt += dry_penalty
 
     return lt
 
