@@ -1,11 +1,11 @@
 import streamlit as st
 
-st.set_page_config(layout="wide")
+# st.set_page_config(layout="wide")
 
 if "tire_wear" not in st.session_state:
     st.session_state.tire_wear = 0
 
-st.title('🏎️ F1 Pit Optimizer v2.0 - Week 6')
+st.title('🏎️ F1 Pit Optimizer v2.0 - Week 7')
 lap_no = st.slider('Lap Progress:', 0, 60, 0)
 
 with open('canvas.html', 'r', encoding='utf-8') as c:
@@ -44,9 +44,12 @@ def wear(l):
 
 
 st.metric("Tire Wear:", f"{wear(lap_no)}%")  # realtime based on slider
+tire_comp = st.selectbox(
+    "Tire compound:", ["SOFT", "MEDIUM", 'HARD'], index=0)
+rain = st.slider("Rain", 0.0, 1.0, 0.0, 0.1)
 
 
-def lap_time(w):
+def lap_time(w, tc, r):
     base_time = 90
     if 0 <= w <= 30:
         lt = base_time
@@ -57,11 +60,21 @@ def lap_time(w):
         penalty = 4  # 70-30 * 0.1 for penalty at 70
         extra = (w-70)*0.3
         lt = base_time+penalty+extra
+
+    if tc == "SOFT":  # tire compound factor
+        lt = lt-0.5
+    elif tc == "MEDIUM":
+        lt += 0
+    elif tc == "HARD":
+        lt += 0.5
+
+    lt += r*3  # rain factor
+
     return lt
 
 
 # realtime based on slider
-st.metric("LAP TIME:", f"{lap_time(wear(lap_no))} s")
+st.metric("LAP TIME:", f"{lap_time(wear(lap_no), tire_comp, rain)} s")
 
 # Slider + metrics showing “current lap” wear/time.
 # Selectbox controlling pit lap for the full‑race simulation and chart
@@ -75,7 +88,7 @@ def race_simulation(p1, p2, pit_penalty=25):
     for lap in range(1, 61):
         # purely linear wear increase, not based on wear function
         w = min(w+2, 100)
-        laptime = lap_time(w)
+        laptime = lap_time(w, tire_comp, rain)
         total_time += laptime
         if p1 == p2 and p1 != 0:
             if p1 == lap:
@@ -107,5 +120,5 @@ a = min(time)
 c = max(time)
 b = pits[time.index(a)]
 d = pits[time.index(c)]
-st.write(f"Overall best single pit lap: {b} (total {a:.2f} s). ")
+st.write(f"Overall best pit strategy is : {b} (total {a:.2f} s). ")
 st.write(f"This is {c-a:.2f} s faster than pit at {d}.")
