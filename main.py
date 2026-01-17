@@ -6,9 +6,13 @@ import pandas as pd
 if "tire_wear" not in st.session_state:
     st.session_state.tire_wear = 0
 
-st.title('🏎️ F1 Pit Optimizer v1.0 - Week 10')
+st.title('🏎️ F1 Pit Optimizer v1.0 - Week 11')
 lap_no = st.slider('Lap Progress:', 0, 60, 0)
-
+num_stops = st.slider("Number of stops", 1, 4, 2)
+pit_input = st.text_input("Pit laps(comma separated):")
+pit_laps = [int(x.strip()) for x in pit_input.split(",") if x.strip()]
+if len(pit_laps) != num_stops:
+    st.error(f"Expected {num_stops} stops, got {len(pit_laps)}")
 with open('canvas.html', 'r', encoding='utf-8') as c:
     code = c.read()
     code = code.replace('{lap_no}', str(lap_no))
@@ -96,7 +100,7 @@ st.metric("LAP TIME:", f"{lap_time(wear(lap_no), tire_comp, rain, 110)} s")
 # Selectbox controlling pit lap for the full‑race simulation and chart
 
 
-def race_simulation(p1, p2, pit_penalty=25):
+def race_simulation(pit_laps, tire_comp="SOFT", rain=0.0):
     total_time = 0
     w = 0  # fresh tyres at every new race simulation
     fuel = 110  # (kg)
@@ -108,20 +112,13 @@ def race_simulation(p1, p2, pit_penalty=25):
         w = min(w+2, 100)
         fuel -= 110/60
         fuel_left.append(fuel)
+
         laptime = lap_time(w, tire_comp, rain, fuel)
         total_time += laptime
-        if p1 == p2 and p1 != 0:
-            if p1 == lap:
-                w = 0
-                total_time += pit_penalty
-        else:
-            if lap == p1 and p1 != 0:
-                w = 0
-                total_time += pit_penalty
 
-            if lap == p2 and p2 != 0:
-                w = 0
-                total_time += pit_penalty
+        if lap in pit_laps:
+            w = 0
+            total_time += 25
 
         lap_n.append(lap)
         time_record.append(total_time)
@@ -129,24 +126,14 @@ def race_simulation(p1, p2, pit_penalty=25):
     return total_time, lap_n, time_record, fuel_left
 
 
-pits = []
-time = []
-for pit1 in range(0, 61):
-    for pit2 in range(0, 61):
-        t, ln, tr, fl = race_simulation(pit1, pit2)
-        pits.append(f"({pit1}, {pit2})")
-        time.append(t)
+if st.button("SIMULATE RACE") and pit_laps:
+    total_time, lap_numbers, cumulative_times, fuel_left = race_simulation(
+        pit_laps, tire_comp, rain)
 
-a = min(time)
-c = max(time)
-b = pits[time.index(a)]
-d = pits[time.index(c)]
-st.write(f"Overall best pit strategy is : {b} (total {a:.2f} s). ")
-st.write(f"This is {c-a:.2f} s faster than pit at {d}.")
-
-df = pd.DataFrame({
-    'Lap': ln,
-    'Fuel': fl
-})
-st.write(df)
-st.line_chart(df.set_index('Lap'))
+    df = pd.DataFrame({
+        'Lap': lap_numbers,
+        'Fuel Left': fuel_left,
+        'Cumulative Time': cumulative_times
+    })
+    st.write(df)
+    st.line_chart(df.set_index('Lap'))
