@@ -137,3 +137,47 @@ if st.button("SIMULATE RACE") and pit_laps:
     })
     st.write(df)
     st.line_chart(df.set_index('Lap'))
+
+
+def generate_strategies(num_stops):
+    strategies = []
+
+    if num_stops == 1:
+        for pit1 in range(25, 46):
+            strategies.append([pit1])
+    elif num_stops == 2:
+        for pit1 in range(15, 31):
+            for pit2 in range(pit1+15, 51):
+                strategies.append([pit1, pit2])
+    elif num_stops == 3:
+        for pit1 in range(12, 26):
+            for pit2 in range(pit1+12, 41):
+                for pit3 in range(pit2+12, 56):
+                    strategies.append([pit1, pit2, pit3])
+    elif num_stops == 4:
+        for pit1 in range(10, 22):
+            for pit2 in range(pit1+10, 35):
+                for pit3 in range(pit2+10, 48):
+                    for pit4 in range(pit3+10, 56):
+                        strategies.append([pit1, pit2, pit3, pit4])
+    return strategies
+
+
+if st.button("🏆 FIND TOP 5 STRATEGIES") and (tire_comp, rain):
+    strategies = generate_strategies(num_stops)
+    st.info(f"Generated {len(strategies)} {num_stops}-stop strategies")
+
+    results = []
+    for strategy in strategies:
+        total_time, lap_numbers, cumulative_times, fuel_left = race_simulation(
+            strategy, tire_comp, rain)
+        results.append({"strategy": strategy, "time": total_time})
+
+    # SORT BY TIME
+    results.sort(key=lambda x: x["time"])
+    top_5 = results[:5]
+
+    for i, result in enumerate(top_5, 1):
+        gap = result["time"] - top_5[0]['time']
+        st.write(
+            f"{i}. {result['strategy']} → {result['time']:.1f}s {'(+%.1f s)' % gap if i > 1 else '(BEST)'}")
