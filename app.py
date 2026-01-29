@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import wear, lap_time  # Import YOUR functions!
+from utils import wear, lap_time
 
 st.set_page_config(layout="wide")
 if "tire_wear" not in st.session_state:

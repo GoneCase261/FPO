@@ -5,7 +5,6 @@ from utils import race_simulation, generate_strategies
 st.header('🔬 Strategy Lab')
 num_stops = st.slider("Number of stops", 1, 4, 2)
 
-# ADD THESE - were missing!
 tire_comp = st.selectbox(
     "Tire compound:", ["SOFT", "MEDIUM", 'HARD', 'INTERMEDIATE', 'WET'], index=0)
 rain = st.slider("Rain", 0.0, 1.0, 0.0, 0.1)
