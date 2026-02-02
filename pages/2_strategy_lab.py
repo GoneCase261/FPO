@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 from utils import race_simulation, generate_strategies
 
 st.header('🔬 Strategy Lab')
@@ -28,7 +29,25 @@ if st.button("SIMULATE RACE") and pit_laps:
     st.write(df)
     st.line_chart(df.set_index('Lap'))
 
-# FIXED: Use correct variables
+    strategy = {
+        'track': "Monaco",
+        'pit_laps': str(pit_laps),
+        "tire_comp": tire_comp,
+        "rain": rain,
+        'total_time': total_time
+    }
+    df_new = pd.DataFrame([strategy])
+
+    if os.path.exists("strategies.csv"):
+        df_old = pd.read_csv("strategies.csv")
+        df_all = pd.concat([df_old, df_new], ignore_index=True)
+    else:
+        df_all = df_new
+
+    df_all.to_csv('strategies.csv', index=False)
+    st.write("ALL:", df_all.tail(3))
+
+# FIXED: Use correct variab,les
 if st.button("🏆 FIND TOP 5 STRATEGIES") and tire_comp and rain is not None:
     strategies = generate_strategies(num_stops)
     st.info(f"Generated {len(strategies)} {num_stops}-stop strategies")
