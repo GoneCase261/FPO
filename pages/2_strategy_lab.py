@@ -16,7 +16,6 @@ pit_laps = [int(x.strip()) for x in pit_input.split(",") if x.strip()]
 if len(pit_laps) != num_stops:
     st.error(f"Expected {num_stops} stops, got {len(pit_laps)}")
 
-# FIXED: Single button + correct variables
 if st.button("SIMULATE RACE") and pit_laps:
     total_time, lap_numbers, cumulative_times, fuel_left = race_simulation(
         pit_laps, tire_comp, rain)  # ✅ Fixed variables
@@ -29,25 +28,25 @@ if st.button("SIMULATE RACE") and pit_laps:
     st.write(df)
     st.line_chart(df.set_index('Lap'))
 
-    strategy = {
-        'track': "Monaco",
-        'pit_laps': str(pit_laps),
-        "tire_comp": tire_comp,
-        "rain": rain,
-        'total_time': total_time
-    }
-    df_new = pd.DataFrame([strategy])
+    if st.button("💾 SAVE TOP 5 TO CSV"):
+        strategy = {
+            'track': "Monaco",
+            'pit_laps': str(pit_laps),
+            "tire_comp": tire_comp,
+            "rain": rain,
+            'total_time': total_time
+        }
+        df_new = pd.DataFrame([strategy])
 
-    if os.path.exists("strategies.csv"):
-        df_old = pd.read_csv("strategies.csv")
-        df_all = pd.concat([df_old, df_new], ignore_index=True)
-    else:
-        df_all = df_new
+        if os.path.exists("strategies.csv"):
+            df_old = pd.read_csv("strategies.csv")
+            df_all = pd.concat([df_old, df_new], ignore_index=True)
+        else:
+            df_all = df_new
 
-    df_all.to_csv('strategies.csv', index=False)
-    st.write("ALL:", df_all.tail(3))
+        df_all.to_csv('strategies.csv', index=False)
+        st.write("Saved:", df_all)
 
-# FIXED: Use correct variab,les
 if st.button("🏆 FIND TOP 5 STRATEGIES") and tire_comp and rain is not None:
     strategies = generate_strategies(num_stops)
     st.info(f"Generated {len(strategies)} {num_stops}-stop strategies")
