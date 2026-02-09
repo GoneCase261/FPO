@@ -6,6 +6,11 @@ from utils import race_simulation, generate_strategies
 st.header('🔬 Strategy Lab')
 num_stops = st.slider("Number of stops", 1, 4, 2)
 
+if 'top_5_strategies' not in st.session_state:
+    st.session_state.top_5_strategies = []
+st.write("📁 Working folder:", os.getcwd())
+st.write("📄 CSV files:", [f for f in os.listdir('.') if f.endswith('.csv')])
+
 tire_comp = st.selectbox(
     "Tire compound:", ["SOFT", "MEDIUM", 'HARD', 'INTERMEDIATE', 'WET'], index=0)
 rain = st.slider("Rain", 0.0, 1.0, 0.0, 0.1)
@@ -18,7 +23,7 @@ if len(pit_laps) != num_stops:
 
 if st.button("SIMULATE RACE") and pit_laps:
     total_time, lap_numbers, cumulative_times, fuel_left = race_simulation(
-        pit_laps, tire_comp, rain)  # ✅ Fixed variables
+        pit_laps, tire_comp, rain)
 
     df = pd.DataFrame({
         'Lap': lap_numbers,
@@ -27,25 +32,6 @@ if st.button("SIMULATE RACE") and pit_laps:
     })
     st.write(df)
     st.line_chart(df.set_index('Lap'))
-
-    if st.button("💾 SAVE TOP 5 TO CSV"):
-        strategy = {
-            'track': "Monaco",
-            'pit_laps': str(pit_laps),
-            "tire_comp": tire_comp,
-            "rain": rain,
-            'total_time': total_time
-        }
-        df_new = pd.DataFrame([strategy])
-
-        if os.path.exists("strategies.csv"):
-            df_old = pd.read_csv("strategies.csv")
-            df_all = pd.concat([df_old, df_new], ignore_index=True)
-        else:
-            df_all = df_new
-
-        df_all.to_csv('strategies.csv', index=False)
-        st.write("Saved:", df_all)
 
 if st.button("🏆 FIND TOP 5 STRATEGIES") and tire_comp and rain is not None:
     strategies = generate_strategies(num_stops)
@@ -59,7 +45,39 @@ if st.button("🏆 FIND TOP 5 STRATEGIES") and tire_comp and rain is not None:
     results.sort(key=lambda x: x["time"])
     top_5 = results[:5]
 
+    # SHOW RESULTS
     for i, result in enumerate(top_5, 1):
         gap = result["time"] - top_5[0]['time']
         st.write(
             f"{i}. {result['strategy']} → {result['time']:.1f}s {'(+%.1f s)' % gap if i > 1 else '(BEST)'}")
+
+    st.session_state.top_5_strategies = top_5
+
+# SAVE BUTTON
+if st.button("💾 SAVE TOP 5"):
+    if st.session_state.top_5_strategies:
+        for result in st.session_state.top_5_strategies:
+            strategy = {
+                'track': 'Monaco',
+                'pit_laps': str(result['strategy']),
+                'tire_comp': tire_comp,
+                'rain': rain,
+                'total_time': result['time']
+            }
+            df_new = pd.DataFrame([strategy])
+            if os.path.exists('strategies.csv'):
+                try:
+                    df_old = pd.read_csv('strategies.csv')
+                    df_all = pd.concat([df_old, df_new], ignore_index=True)
+                except pd.errors.EmptyDataError:
+                    df_all = df_new
+            else:
+                df_all = df_new
+            df_all.to_csv('strategies.csv', index=False)
+
+        st.success("✅ Saved TOP 5!")
+        # shows last 5 rows by default
+        st.dataframe(pd.read_csv('strategies.csv').tail())
+        st.session_state.top_5_strategies = []
+    else:
+        st.warning("🤷 Run FIND TOP 5 first!")
