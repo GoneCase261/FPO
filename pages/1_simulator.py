@@ -43,19 +43,9 @@ if use_real_data:
 else:
     current_lap_time = lap_time(wear(lap_no), tire_comp, rain, 110)
 
-# METRICS TAB
-tab1, tab2 = st.tabs(["📊 Lap Data", "🗺️ Track Map"])
-with tab1:
+st.header("📊 Lap Data")
+col1, col2 = st.columns(2)
+with col1:
     st.metric("Tire Wear:", f"{wear(lap_no)}%")
+with col2:
     st.metric("LAP TIME:", f"{current_lap_time:.2f} s")
-with tab2:
-    with open('canvas.html', 'r', encoding='utf-8') as c:
-        code = c.read()
-        code = code.replace('{lap_no}', str(lap_no))
-        st.components.v1.html(code, height=400)
-
-if lap_no > 45 and lap_no != 60:
-    st.warning("🛞 Tires CRITICAL! Consider Pitting Soon.")
-    if st.button('🛑 PIT STOP'):
-        st.session_state.tire_wear = 0
-        st.success("🔧 Pitted!")

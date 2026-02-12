@@ -1,4 +1,5 @@
 import streamlit as st
+from .f1_config import F1_CONFIG, TIRE_MULTIPLIERS  # Import your config
 
 
 def wear(l):
@@ -53,29 +54,48 @@ def lap_time(w, tc, r, f):
     return lt
 
 
-def race_simulation(pit_laps, tire_comp="SOFT", rain=0.0):
+def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0):
+
+    # Get track data from your f1_config
+    track_data = F1_CONFIG[track_name]  # "Monaco_Street" → your data
+
     total_time = 0
-    w = 0  # fresh tyres at every new race simulation
-    fuel = 110  # (kg)
+    w = 0  # tire wear
+    fuel = track_data['fuel_tank']  # From your config!
+
     time_record = []
     lap_n = []
     fuel_left = []
-    for lap in range(1, 61):
-        # purely linear wear increase, not based on wear function
-        w = min(w+2, 100)
-        fuel -= 110/60
-        fuel_left.append(fuel)
+
+    total_laps = track_data['laps']
+    for lap in range(1, total_laps + 1):
+        # Tire wear: track_wear × tire_multiplier
+        tire_mult = TIRE_MULTIPLIERS.get(tire_comp, 1.0)
+        track_wear = track_data['tdr'] * tire_mult  # Your config values!
+        w = min(w + track_wear, 100)
+
+        # Fuel burn from your config
+        fuel -= track_data['fbph'] / 60
+
+        # FUEL FIX: No negatives
+        if fuel < 5 and lap not in pit_laps:
+            pit_laps.append(lap)
+            fuel = track_data['fuel_tank']
+            total_time += track_data['pit_time']
+
+        fuel_left.append(max(fuel, 0))  # Clean display
 
         laptime = lap_time(w, tire_comp, rain, fuel)
         total_time += laptime
 
         if lap in pit_laps:
             w = 0
-            total_time += 25
+            fuel = track_data['fuel_tank']  # Full refuel
+            total_time += track_data['pit_time']
 
         lap_n.append(lap)
         time_record.append(total_time)
-    # cummulative time after every lap
+
     return total_time, lap_n, time_record, fuel_left
 
 
