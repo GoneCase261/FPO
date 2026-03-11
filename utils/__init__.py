@@ -79,7 +79,7 @@ def safety_car_effect(lap, sc_periods):
 
 
 # 3. FULL RACE SIMULATOR - Complete race with pits
-def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0, verbose=0):
+def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0, verbose=0, fixed_sc=None):
     """
     pit_laps = [18, 37]  # Pit on lap 18 + 37
     Returns: (total_race_time, lap_numbers, cumulative_times, fuel_history)
@@ -88,7 +88,7 @@ def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0, verbose=0)
     total_laps = track_data['laps']
 
     # Generate random SC periods for THIS race
-    sc_periods = safety_car_periods(total_laps)
+    sc_periods = fixed_sc if fixed_sc else safety_car_periods(total_laps)
     if verbose:
         print(f"SC periods: {sorted(list(sc_periods))}")
 
