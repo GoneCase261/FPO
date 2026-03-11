@@ -107,7 +107,17 @@ def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fix
     actual_time = race_simulation(
         sim_pit_laps, track, verbose=False, fixed_sc=fixed_sc)[0]
 
-    final_reward = -actual_time / 1000  # Lower time = higher reward
+    standings, positions, pos_score = race_standings(pit_laps)
+    # STEP 2: Normalize time vs human [0,1]
+    human_time, _, _, _ = race_simulation(
+        [20, 35], track, verbose=False, fixed_sc=fixed_sc)
+    time_score = (human_time - actual_time) / \
+        human_time  # +0.027 = 2.7% faster
+
+    # STEP 3: Combine (EQUAL weight - both normalized!)
+    final_reward = (pos_score + time_score) / 2
+    if len(pit_laps) > 2:
+        final_reward -= 3.0
 
     final_state = agent.get_state(
         track_data["laps"], tire_wear, fuel, current_compound, len(pit_laps))
@@ -133,6 +143,30 @@ def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fix
     return pit_laps, actual_time, final_reward
 
 
+def race_standings(pit_strategies, track="Silverstone_Fast"):
+    opponents = {
+        "RedBull": [19, 36],
+        "Ferrari": [20, 35],
+        "McLaren": [18, 37],
+        "Mercedes": [21, 34],
+        "Aston": [22, 33]
+    }
+    all_times = {"AI": race_simulation(
+        pit_strategies, track, verbose=False)[0]}
+    for team, pits in opponents.items():
+        all_times[team] = race_simulation(pits, track, verbose=False)[0]
+
+    # Final positions (lower time = better position)
+    standings = sorted(all_times.items(), key=lambda x: x[1])
+    positions = {team: i+1 for i, (team, time) in enumerate(standings)}
+
+    # NORMALIZED POSITION SCORE [0,1] - P1=1.0, P6=0.0
+    num_cars = len(all_times)
+    pos_score = (num_cars - positions["AI"]) / (num_cars - 1)
+
+    return standings, positions, pos_score
+
+
 def train_ai(episodes=2000):
     agent = F1QAgent()
     best_time = float('inf')  # initialize best time as infinity
@@ -147,6 +181,11 @@ def train_ai(episodes=2000):
     for episode in range(episodes):
         agent.alpha = max(0.02, 0.1 * (0.995 ** episode))
         strategy, race_time, reward = run_race_with_ai(agent)
+        standings, positions, pos_score = race_standings(strategy)
+    if episode % 50 == 0:  # Print every 50 episodes
+        strat_display = [f"L{lap}{comp[0]}" for lap, comp in strategy]
+        print(
+            f"Ep {episode}: P{positions['AI']} | Score={pos_score:.2f} | {strat_display}")
 
         if race_time < best_time:
             best_time = race_time
@@ -155,12 +194,12 @@ def train_ai(episodes=2000):
         episode_times.append(best_time)
         epsilon_history.append(agent.epsilon)
 
-        if episode % 200 == 0:
-            strategy_display = [
-                f"L{lap}{comp[0]}" for lap, comp in best_strategy]
-            print(f"Ep {episode}: ε={agent.epsilon:.3f} | Best={best_time:.0f}s| "
-                  f"Strategy={strategy_display} | "
-                  f"Q-Table={len(agent.q_table)}")
+        # if episode % 200 == 0:
+        #     strategy_display = [
+        #         f"L{lap}{comp[0]}" for lap, comp in best_strategy]
+        #     print(f"Ep {episode}: ε={agent.epsilon:.3f} | Best={best_time:.0f}s| "
+        #           f"Strategy={strategy_display} | "
+        #           f"Q-Table={len(agent.q_table)}")
 
     return agent, best_strategy, best_time, episode_times, epsilon_history
 
@@ -173,40 +212,40 @@ if __name__ == "__main__":
     def moving_average(data, window=50):
         return np.convolve(data, np.ones(window)/window, mode='valid')
 
-    # PLOT LEARNING CURVE
-    plt.figure(figsize=(12, 4))
+    # # PLOT LEARNING CURVE
+    # plt.figure(figsize=(12, 4))
 
-    plt.subplot(1, 2, 1)
-    smoothed_times = moving_average(episode_times, 50)
-    plt.plot(episode_times, alpha=0.3, color='lightblue', label="Raw Episodes")
-    plt.plot(range(49, len(smoothed_times)+49), smoothed_times,
-             linewidth=3, color='darkblue', label="Smoothed Trend")
-    plt.title('Learning Curve')
-    plt.ylabel('Best Race Time (s)')
-    plt.xlabel('Episode')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
+    # plt.subplot(1, 2, 1)
+    # smoothed_times = moving_average(episode_times, 50)
+    # plt.plot(episode_times, alpha=0.3, color='lightblue', label="Raw Episodes")
+    # plt.plot(range(49, len(smoothed_times)+49), smoothed_times,
+    #          linewidth=3, color='darkblue', label="Smoothed Trend")
+    # plt.title('Learning Curve')
+    # plt.ylabel('Best Race Time (s)')
+    # plt.xlabel('Episode')
+    # plt.legend()
+    # plt.grid(True, alpha=0.3)
 
-    plt.subplot(1, 2, 2)
-    plt.plot(epsilon_history, linewidth=2, color='green')
-    plt.title('Epsilon Decay')
-    plt.ylabel('Epsilon')
-    plt.xlabel('Episode')
-    plt.grid(True, alpha=0.3)
+    # plt.subplot(1, 2, 2)
+    # plt.plot(epsilon_history, linewidth=2, color='green')
+    # plt.title('Epsilon Decay')
+    # plt.ylabel('Epsilon')
+    # plt.xlabel('Episode')
+    # plt.grid(True, alpha=0.3)
 
-    plt.tight_layout()
-    plt.savefig('week22_learning_curve.png', dpi=300, bbox_inches='tight')
-    plt.show()
-    print("📈 Learning curve saved: week22_learning_curve.png")
+    # plt.tight_layout()
+    # plt.savefig('week22_learning_curve.png', dpi=300, bbox_inches='tight')
+    # plt.show()
+    # print("📈 Learning curve saved: week22_learning_curve.png")
 
     # Compare Q vs human
     human_time, _, _, _ = race_simulation(
         [20, 35], "Silverstone_Fast", verbose=False)
 
    # PAIRED EVALUATION - SAME ENVIRONMENT
-print("\n" + "="*70)
-print("🔬 PAIRED EVALUATION: Identical Race Conditions")
-print("="*70)
+# print("\n" + "="*70)
+# print("🔬 PAIRED EVALUATION: Identical Race Conditions")
+# print("="*70)
 
 fixed_sc = safety_car_periods(F1_CONFIG["Silverstone_Fast"]['laps'])
 
@@ -228,9 +267,14 @@ final_strategy = max(set(tuple(s) for s in eval_strategies), key=[
 human_time, _, _, _ = race_simulation(
     [20, 35], "Silverstone_Fast", fixed_sc=fixed_sc, verbose=False)
 
-print(
-    f"🤖 TRAINED AI:     {final_strategy} → {final_time:.0f}s ±{final_std:.0f}s")
+# print(
+#     f"🤖 TRAINED AI:     {final_strategy} → {final_time:.0f}s ±{final_std:.0f}s")
 print(f"👨  Human:         [20,35] → {human_time:.0f}s")
 gain = human_time - final_time
 print(f"🎯 AI GAINS:       {gain:.0f}s ({gain/human_time*100:.1f}%)")
 print("="*70)
+
+# Quick test
+standings, positions, pos_score = race_standings([16, 33])
+print(f"AI Position: {positions['AI']}, Score: {pos_score:.2f}")
+print("Top 3:", [team for team, pos in positions.items() if pos <= 3])
