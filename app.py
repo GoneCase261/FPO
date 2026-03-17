@@ -1,6 +1,11 @@
 import streamlit as st
+import os
 
 st.set_page_config(layout="wide")
+
+# Clear stale strategy data on every startup
+if os.path.exists('strategies.csv'):
+    os.remove('strategies.csv')
 
 st.title("🏎️ F1 Pit Strategy Optimizer")
 st.caption("A Q-Learning powered race strategy simulator built from scratch.")
