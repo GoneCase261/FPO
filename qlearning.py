@@ -1,191 +1,295 @@
-import matplotlib.pyplot as plt
+import json
 import random
 import numpy as np
-from utils import race_simulation, F1_CONFIG, TIRE_MULTIPLIERS, safety_car_periods
+from collections import Counter
+from utils import (
+    F1_CONFIG,
+    race_simulation,
+    safety_car_periods,
+    simulate_one_lap,
+    safety_car_effect,
+)
 
-base_lap_time = 85.2  # frm f1-config
+PIT_WINDOW_START = 15
+PIT_WINDOW_END = 45
+NO_PIT = 3
+POSITION_REWARD = {1: 500, 2: 300, 3: 200, 4: 120, 5: 60, 6: -100}
 
 
 class F1QAgent:
     def __init__(self):
-        # q's empty dictionary
-        self.q_table = {}  # "lap:tire:fuel": {0:points,1:points}
-        self.initial_alpha = 0.1
-        self.alpha = 0.1   # Learning speed
-        self.gamma = 0.95  # Future reward value
-        self.epsilon = 1.0  # 100% exploration
+        self.q_table = {}
+        self.alpha = 0.2
+        self.initial_alpha = 0.2
+        self.alpha_min = 0.02
+        self.alpha_decay = 0.995
+        self.gamma = 0.95
+        self.epsilon = 1.0
         self.epsilon_min = 0.05
-        self.epsilon_decay = 0.997  # decay per episode
+        self.epsilon_decay = 0.9997
 
-    def get_state(self, lap, tire_wear, fuel, current_compound="SOFT", pit_count=0):
-        tire_bucket = min(int(tire_wear // 10), 9)
-        fuel_bucket = min(int(fuel // 5), 12)
-        return f"{lap}:{tire_bucket}:{fuel_bucket}:{current_compound[0]}:{pit_count}"
+    def get_state(self, lap, tire_wear, current_compound="SOFT", pit_count=0, fuel=110, sc_active=False):
+        lap_bucket = lap // 3
+        tire_bucket = min(int(tire_wear // 25), 3)
+        fuel_bucket = int(fuel // 25)
+        sc_bucket = 1 if sc_active else 0
+        return f"{lap_bucket}:{tire_bucket}:{current_compound[0]}:{pit_count}:{fuel_bucket}:{sc_bucket}"
 
     def choose_action(self, state):
         if random.random() < self.epsilon:
-            return random.choice([0, 1, 2, 3])
-
+            return random.choices([0, 1, 2, 3], weights=[0.2, 0.4, 0.2, 0.2])[0]
         if state in self.q_table:
-            # Exploit: best
             q_vals = self.q_table[state]
-            best_vals = max(q_vals.values())
-
-            best_action = [a for a, v in q_vals.items() if v >
-                           best_vals - 0.05]
-            return random.choice(best_action) if best_action else 3
-        return 3  # Default: stay
+            best_val = max(q_vals.values())
+            best_acts = [a for a, v in q_vals.items() if v >= best_val - 0.1]
+            return random.choice(best_acts)
+        return 1  # default: MEDIUM
 
     def update_q(self, state, action, reward, next_state):
         if state not in self.q_table:
-            # initializing if memory missing
             self.q_table[state] = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0}
         if next_state not in self.q_table:
             self.q_table[next_state] = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0}
 
         current_q = self.q_table[state][action]
         next_max = max(self.q_table[next_state].values())
-
-        # New value = Old value + Learning rate × (Target − Old value)
-        # target = reward + gamma * (best future val)
         self.q_table[state][action] = current_q + self.alpha * (
             reward + self.gamma * next_max - current_q
         )
 
 
-def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fixed_sc=None):
-    """One complete race using AI decisions"""
+def calculate_reward(position, actual_time, tire_wear, pit_laps, track, pos_score):
     track_data = F1_CONFIG[track]
+    base_lap = track_data['base_lap']
+    track_laps = track_data['laps']
+    avg_lap_time = actual_time / track_laps
 
-    pit_laps = []
+    time_reward = (base_lap - avg_lap_time) * 50
+    pos_reward = POSITION_REWARD.get(position, 0) * 8
+    pos_score_reward = pos_score * 1500
+    tire_bonus = (100 - tire_wear) * 0.2
+    pit_penalty = len(pit_laps) * 3
+    wear_penalty = tire_wear * 0.1
+
+    return time_reward + pos_reward + pos_score_reward + tire_bonus - pit_penalty - wear_penalty
+
+
+def simulate_opponent(pit_plan, compound, track, fixed_sc):
+    """Simulates an opponent with basic SC awareness using identical physics to run_race_with_ai."""
+    track_data = F1_CONFIG[track]
     tire_wear = 0
     fuel = track_data['fuel_tank']
-    current_compound = "SOFT"
-    total_episode_reward = 0
-    episode_memory = []
+    total_time = 0
+    pits_done = 0
+    planned_pits = sorted(pit_plan)
 
-    # Simulate lap-by-lap decisions
-    original_epsilon = agent.epsilon
-    if evaluation_mode:
-        agent.epsilon = 0.0
     for lap in range(1, track_data['laps'] + 1):
-        # Current state
-        state = agent.get_state(lap, tire_wear, fuel,
-                                current_compound, len(pit_laps))
+        slowdown = safety_car_effect(lap, fixed_sc)
+        sc_active = slowdown > 1.0
 
-        # AI decides: pit (0) or continue (1)?
-        action = agent.choose_action(state)
-        episode_memory.append((state, action))
+        tire_wear_next, fuel_next, lap_time_val = simulate_one_lap(
+            lap, tire_wear, compound, fuel, track_data, fixed_sc, rain=0.0
+        )
+        total_time += lap_time_val
 
-        # Simulate this lap
-        tire_mult = TIRE_MULTIPLIERS.get(current_compound, 1.0)
-        tire_wear = min(tire_wear + track_data['tdr'] * tire_mult, 100)
-        fuel -= track_data['fbph'] / 60
-        fuel = max(fuel, 0)
+        should_pit = False
+        if pits_done < len(planned_pits) and lap == planned_pits[pits_done]:
+            should_pit = True
+        elif (
+            sc_active
+            and pits_done < len(planned_pits)
+            and tire_wear > 40
+            and abs(lap - planned_pits[pits_done]) <= 4
+            and lap > 15
+        ):
+            should_pit = True
 
-        # Good pit!
-        compounds = ["SOFT", "MEDIUM", "HARD"]
-        if (action in [0, 1, 2] and tire_wear > 70 and len(pit_laps) < 2 and lap > 15):
-            new_compound = compounds[action]
-            pit_laps.append((lap, new_compound))
-            tire_wear = 0
-            current_compound = new_compound  # tires switched at pit
+        if should_pit:
+            tire_wear_next = 0
+            pits_done += 1
+            if slowdown > 1.0:
+                delta = track_data['base_lap'] * (slowdown - 1)
+                effective_pit = max(track_data['pit_time'] - delta, 12.0)
+            else:
+                effective_pit = track_data['pit_time']
+            total_time += effective_pit
 
-        # HYBRID REWARDS: Small shaping + final race objective
-        wear_penalty = tire_wear * 0.002  # Gentle wear guidance
-        pit_penalty = 0.05 if action in [0, 1, 2] else 0  # Discourage bad pits
-        reward = -wear_penalty - pit_penalty
-        total_episode_reward += reward
+        tire_wear = tire_wear_next
+        fuel = fuel_next
 
-        next_state = agent.get_state(
-            lap + 1, tire_wear, fuel, current_compound, len(pit_laps))
-        if not evaluation_mode:
-            agent.update_q(state, action, reward, next_state)
-
-    # Final race time (using real simulator)
-    sim_pit_laps = [lap for lap, comp in pit_laps]
-    actual_time = race_simulation(
-        sim_pit_laps, track, verbose=False, fixed_sc=fixed_sc)[0]
-
-    standings, positions, pos_score = race_standings(pit_laps)
-    # STEP 2: Normalize time vs human [0,1]
-    human_time, _, _, _ = race_simulation(
-        [20, 35], track, verbose=False, fixed_sc=fixed_sc)
-    time_score = (human_time - actual_time) / \
-        human_time  # +0.027 = 2.7% faster
-
-    # STEP 3: Combine (EQUAL weight - both normalized!)
-    final_reward = (pos_score + time_score) / 2
-    if len(pit_laps) > 2:
-        final_reward -= 3.0
-
-    final_state = agent.get_state(
-        track_data["laps"], tire_wear, fuel, current_compound, len(pit_laps))
-
-    if len(pit_laps) > 2:
-        final_reward -= 300  # penalty for too many stops
-
-    if not evaluation_mode:
-        # UNIFORM BACKPROP: Q-table learns BEST strategy (L16S,L33S)
-        backprop_reward = final_reward / len(episode_memory)
-
-        # Backprop through trajectory (proper next states)
-        states = [s for s, a in episode_memory] + [final_state]
-        for i, (state, action) in enumerate(episode_memory):
-            next_state = states[i+1]  # Proper next state!
-            agent.update_q(state, action, backprop_reward, next_state)
-
-    agent.epsilon = original_epsilon
-    if not evaluation_mode:  # Decay only during training episodes
-        agent.epsilon = max(agent.epsilon_min,
-                            agent.epsilon * agent.epsilon_decay)
-
-    return pit_laps, actual_time, final_reward
+    return total_time
 
 
-def race_standings(pit_strategies, track="Silverstone_Fast"):
+def race_standings(pit_strategies, track="Silverstone_Fast", fixed_sc=None, ai_compound="MEDIUM", ai_time=None):
     opponents = {
-        "RedBull": [19, 36],
-        "Ferrari": [20, 35],
-        "McLaren": [18, 37],
-        "Mercedes": [21, 34],
-        "Aston": [22, 33]
+        "RedBull":  {"pits": [20, 38], "compound": "HARD"},
+        "Ferrari":  {"pits": [16, 32], "compound": "SOFT"},
+        "McLaren":  {"pits": [22, 40], "compound": "MEDIUM"},
+        "Mercedes": {"pits": [19, 36], "compound": "HARD"},
+        "Aston":    {"pits": [25, 42], "compound": "MEDIUM"},
     }
-    all_times = {"AI": race_simulation(
-        pit_strategies, track, verbose=False)[0]}
-    for team, pits in opponents.items():
-        all_times[team] = race_simulation(pits, track, verbose=False)[0]
 
-    # Final positions (lower time = better position)
+    if ai_time is not None:
+        all_times = {"AI": ai_time}
+    else:
+        all_times = {"AI": race_simulation(
+            pit_strategies, track,
+            tire_comp=ai_compound,
+            fixed_sc=fixed_sc,
+            verbose=False,
+        )[0]}
+
+    for team, data in opponents.items():
+        all_times[team] = simulate_opponent(
+            data["pits"], data["compound"], track, fixed_sc)
+
     standings = sorted(all_times.items(), key=lambda x: x[1])
-    positions = {team: i+1 for i, (team, time) in enumerate(standings)}
-
-    # NORMALIZED POSITION SCORE [0,1] - P1=1.0, P6=0.0
+    positions = {team: i + 1 for i, (team, _) in enumerate(standings)}
     num_cars = len(all_times)
     pos_score = (num_cars - positions["AI"]) / (num_cars - 1)
 
     return standings, positions, pos_score
 
 
-def train_ai(episodes=2000):
-    agent = F1QAgent()
-    best_time = float('inf')  # initialize best time as infinity
-    best_strategy = []
+def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fixed_sc=None):
+    track_data = F1_CONFIG[track]
+    pit_laps = []
+    tire_wear = 0
+    fuel = track_data['fuel_tank']
+    current_compound = "MEDIUM"
+    total_race_time = 0
 
-    # LEARNING CURVE
+    if fixed_sc is None:
+        fixed_sc = safety_car_periods(track_data['laps'])
+
+    original_epsilon = agent.epsilon
+    if evaluation_mode:
+        agent.epsilon = 0.0
+
+    for lap in range(1, track_data['laps'] + 1):
+        slowdown = safety_car_effect(lap, fixed_sc)
+        sc_active = slowdown > 1.0
+
+        state = agent.get_state(lap, tire_wear, current_compound, len(
+            pit_laps), fuel, sc_active=sc_active)
+        action = agent.choose_action(
+            state) if PIT_WINDOW_START <= lap <= PIT_WINDOW_END else NO_PIT
+
+        compounds = ["SOFT", "MEDIUM", "HARD"]
+        can_pit = (
+            PIT_WINDOW_START <= lap <= PIT_WINDOW_END
+            and len(pit_laps) < 2
+            and (len(pit_laps) == 0 or lap - pit_laps[-1][0] > 15)
+            and not (len(pit_laps) == 0 and lap < 18)
+        )
+
+        tire_wear_next, fuel_next, lap_time_val = simulate_one_lap(
+            lap, tire_wear, current_compound, fuel, track_data, fixed_sc, rain=0.0
+        )
+        total_race_time += lap_time_val
+
+        compound_next = current_compound
+        pit_count_next = len(pit_laps)
+        step_reward = -(lap_time_val - track_data['base_lap'])
+
+        if action in [0, 1, 2] and can_pit:
+            if lap < 18:
+                step_reward -= 25
+            elif lap < 19:
+                step_reward -= 10
+            if sc_active:
+                step_reward += 35
+            if compounds[action] == "MEDIUM":
+                step_reward += 15
+            elif compounds[action] == "SOFT":
+                step_reward += 5
+            elif compounds[action] == "HARD":
+                step_reward -= 10
+            if compounds[action] == current_compound:
+                step_reward -= 20
+
+            step_reward += 8 if tire_wear > 65 else -8
+            stint_length = lap - (pit_laps[-1][0] if pit_laps else 0)
+            if stint_length < 15:
+                step_reward -= 20
+
+            tire_wear_next = 0
+            compound_next = compounds[action]
+            pit_count_next += 1
+            pit_laps.append((lap, compound_next))
+
+            if slowdown > 1.0:
+                delta = track_data['base_lap'] * (slowdown - 1)
+                effective_pit = max(track_data['pit_time'] - delta, 12.0)
+            else:
+                effective_pit = track_data['pit_time']
+            total_race_time += effective_pit
+
+        next_slowdown = safety_car_effect(lap + 1, fixed_sc)
+        next_sc_active = next_slowdown > 1.0
+        next_state = agent.get_state(
+            lap + 1, tire_wear_next, compound_next, pit_count_next, fuel_next,
+            sc_active=next_sc_active,
+        )
+
+        if not evaluation_mode:
+            agent.update_q(state, action, step_reward, next_state)
+
+        tire_wear = tire_wear_next
+        fuel = fuel_next
+        current_compound = compound_next
+
+    sim_pit_laps = [lap for lap, comp in pit_laps]
+    first_compound = pit_laps[0][1] if pit_laps else current_compound
+
+    _, positions, pos_score = race_standings(
+        sim_pit_laps, track,
+        fixed_sc=fixed_sc,
+        ai_compound=first_compound,
+        ai_time=total_race_time,
+    )
+
+    final_reward = calculate_reward(
+        positions["AI"], total_race_time, tire_wear,
+        sim_pit_laps, track, pos_score,
+    )
+
+    if not evaluation_mode:
+        agent.update_q(state, NO_PIT, final_reward, next_state)
+
+    agent.epsilon = original_epsilon
+    if not evaluation_mode:
+        agent.epsilon = max(agent.epsilon_min,
+                            agent.epsilon * agent.epsilon_decay)
+        agent.alpha = max(agent.alpha_min,   agent.alpha * agent.alpha_decay)
+
+    return pit_laps, total_race_time, final_reward
+
+
+def train_ai(episodes=100000):
+    agent = F1QAgent()
+    best_time = float('inf')
+    best_strategy = []
     episode_times = []
     epsilon_history = []
 
     print("🧠 Training AI Strategist...")
 
     for episode in range(episodes):
-        agent.alpha = max(0.02, 0.1 * (0.995 ** episode))
-        strategy, race_time, reward = run_race_with_ai(agent)
-        standings, positions, pos_score = race_standings(strategy)
-    if episode % 50 == 0:  # Print every 50 episodes
-        strat_display = [f"L{lap}{comp[0]}" for lap, comp in strategy]
-        print(
-            f"Ep {episode}: P{positions['AI']} | Score={pos_score:.2f} | {strat_display}")
+        if episode % 10 == 0:
+            fixed_sc = safety_car_periods(
+                F1_CONFIG["Silverstone_Fast"]['laps'])
+
+        strategy, race_time, _ = run_race_with_ai(
+            agent, "Silverstone_Fast", fixed_sc=fixed_sc)
+        sim_pit_laps = [lap for lap, comp in strategy]
+        _, positions, pos_score = race_standings(
+            sim_pit_laps, fixed_sc=fixed_sc)
+
+        if episode % 10000 == 0:
+            strat_display = [f"L{lap}{comp[0]}" for lap, comp in strategy]
+            print(
+                f"Ep {episode}: P{positions['AI']} | Score={pos_score:.2f} | {strat_display}")
 
         if race_time < best_time:
             best_time = race_time
@@ -194,87 +298,86 @@ def train_ai(episodes=2000):
         episode_times.append(best_time)
         epsilon_history.append(agent.epsilon)
 
-        # if episode % 200 == 0:
-        #     strategy_display = [
-        #         f"L{lap}{comp[0]}" for lap, comp in best_strategy]
-        #     print(f"Ep {episode}: ε={agent.epsilon:.3f} | Best={best_time:.0f}s| "
-        #           f"Strategy={strategy_display} | "
-        #           f"Q-Table={len(agent.q_table)}")
-
     return agent, best_strategy, best_time, episode_times, epsilon_history
 
 
-# 🏁 LAUNCH AI TRAINING!
 if __name__ == "__main__":
-    ai_agent, best_strategy, best_time, episode_times, epsilon_history = train_ai(
-        2000)
+    ai_agent, _, _, episode_times, _ = train_ai(100000)
 
-    def moving_average(data, window=50):
-        return np.convolve(data, np.ones(window)/window, mode='valid')
+    ai_positions = []
+    ai_times = []
+    ai_strategies = []
 
-    # # PLOT LEARNING CURVE
-    # plt.figure(figsize=(12, 4))
+    print("🏎️  Running 500-race championship...")
+    for race in range(500):
+        race_sc = safety_car_periods(F1_CONFIG["Silverstone_Fast"]['laps'])
+        strategy, time, _ = run_race_with_ai(
+            ai_agent, evaluation_mode=True, fixed_sc=race_sc)
+        sim_pit_laps = [lap for lap, comp in strategy]
+        standings, positions, _ = race_standings(
+            sim_pit_laps, fixed_sc=race_sc, ai_time=time)
 
-    # plt.subplot(1, 2, 1)
-    # smoothed_times = moving_average(episode_times, 50)
-    # plt.plot(episode_times, alpha=0.3, color='lightblue', label="Raw Episodes")
-    # plt.plot(range(49, len(smoothed_times)+49), smoothed_times,
-    #          linewidth=3, color='darkblue', label="Smoothed Trend")
-    # plt.title('Learning Curve')
-    # plt.ylabel('Best Race Time (s)')
-    # plt.xlabel('Episode')
-    # plt.legend()
-    # plt.grid(True, alpha=0.3)
+        ai_positions.append(positions["AI"])
+        ai_times.append(time)
+        ai_strategies.append([f"L{lap}{comp[0]}" for lap, comp in strategy])
 
-    # plt.subplot(1, 2, 2)
-    # plt.plot(epsilon_history, linewidth=2, color='green')
-    # plt.title('Epsilon Decay')
-    # plt.ylabel('Epsilon')
-    # plt.xlabel('Episode')
-    # plt.grid(True, alpha=0.3)
+        if race % 100 == 0:
+            win_rate = sum(1 for p in ai_positions if p == 1) / \
+                len(ai_positions) * 100
+            print(
+                f"Race {race}: Win Rate={win_rate:.0f}% | Latest: P{positions['AI']}")
 
-    # plt.tight_layout()
-    # plt.savefig('week22_learning_curve.png', dpi=300, bbox_inches='tight')
-    # plt.show()
-    # print("📈 Learning curve saved: week22_learning_curve.png")
+    # 30-race evaluation
+    eval_times = []
+    eval_strategies = []
+    for _ in range(30):
+        eval_sc = safety_car_periods(F1_CONFIG["Silverstone_Fast"]['laps'])
+        strategy, time, _ = run_race_with_ai(
+            ai_agent, evaluation_mode=True, fixed_sc=eval_sc)
+        eval_times.append(time)
+        eval_strategies.append([f"L{lap}{comp[0]}" for lap, comp in strategy])
 
-    # Compare Q vs human
+    final_time = np.mean(eval_times)
+    final_std = np.std(eval_times)
+
+    strategy_counts = Counter(tuple(s) for s in eval_strategies)
+    best_strategy = list(strategy_counts.most_common(1)[0][0])
+
     human_time, _, _, _ = race_simulation(
-        [20, 35], "Silverstone_Fast", verbose=False)
+        [20, 35], "Silverstone_Fast", fixed_sc=eval_sc, verbose=False)
+    gain = human_time - final_time
 
-   # PAIRED EVALUATION - SAME ENVIRONMENT
-# print("\n" + "="*70)
-# print("🔬 PAIRED EVALUATION: Identical Race Conditions")
-# print("="*70)
+    eval_standings, eval_positions, eval_pos_score = race_standings(
+        [18, 34], fixed_sc=eval_sc, ai_time=final_time
+    )
 
-fixed_sc = safety_car_periods(F1_CONFIG["Silverstone_Fast"]['laps'])
+    wins = sum(1 for p in ai_positions if p == 1)
+    podiums = sum(1 for p in ai_positions if p <= 3)
 
-# AI in FIXED environment (30 runs)
-eval_times = []
-eval_strategies = []
-for _ in range(30):
-    strategy, time, _ = run_race_with_ai(
-        ai_agent, evaluation_mode=True, fixed_sc=fixed_sc)
-    eval_times.append(time)
-    eval_strategies.append([f"L{lap}{comp[0]}" for lap, comp in strategy])
+    print(f"\n🏆 500-RACE SUMMARY")
+    print(f"AI Wins:    {wins}/500 ({wins/500*100:.1f}%)")
+    print(f"Podiums:    {podiums}/500")
+    print(f"Avg finish: P{np.mean(ai_positions):.1f}")
+    print(f"AI strategy: {best_strategy}")
+    print(f"AI avg time: {final_time:.0f}s ± {final_std:.0f}s")
+    print(f"Human time:  {human_time:.0f}s")
+    print(f"AI gain:     {gain:.0f}s ({gain/human_time*100:.1f}%)")
 
-final_time = np.mean(eval_times)
-final_std = np.std(eval_times)
-final_strategy = max(set(tuple(s) for s in eval_strategies), key=[
-                     tuple(s) for s in eval_strategies].count)[0]
+    # ── Save results for Analytics page ──────────────────────────────────────
+    results = {
+        "win_rate":      wins / 500 * 100,
+        "avg_position":  float(np.mean(ai_positions)),
+        "ai_avg_time":   float(final_time),
+        "ai_std":        float(final_std),
+        "human_time":    float(human_time),
+        "gain_vs_human": float(gain),
+        "best_strategy": best_strategy,
+        "all_positions": ai_positions,
+        # Every 100th ep to keep file small
+        "episode_times": episode_times[::100],
+    }
 
-# Human in SAME FIXED environment
-human_time, _, _, _ = race_simulation(
-    [20, 35], "Silverstone_Fast", fixed_sc=fixed_sc, verbose=False)
+    with open("results.json", "w") as f:
+        json.dump(results, f, indent=2)
 
-# print(
-#     f"🤖 TRAINED AI:     {final_strategy} → {final_time:.0f}s ±{final_std:.0f}s")
-print(f"👨  Human:         [20,35] → {human_time:.0f}s")
-gain = human_time - final_time
-print(f"🎯 AI GAINS:       {gain:.0f}s ({gain/human_time*100:.1f}%)")
-print("="*70)
-
-# Quick test
-standings, positions, pos_score = race_standings([16, 33])
-print(f"AI Position: {positions['AI']}, Score: {pos_score:.2f}")
-print("Top 3:", [team for team, pos in positions.items() if pos <= 3])
+    print("\n✅ Saved results.json — open the Analytics page to view charts.")

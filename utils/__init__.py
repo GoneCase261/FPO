@@ -2,9 +2,24 @@ import random
 from .f1_config import F1_CONFIG, TIRE_MULTIPLIERS
 
 
-# 1. TIRE WEAR CALCULATOR - How tires degrade lap-by-lap
+def simulate_one_lap(lap, tire_wear, tire_comp, fuel, track_data, sc_periods, rain=0.0):
+    tire_mult = TIRE_MULTIPLIERS.get(tire_comp, 1.0)
+    tire_wear = min(tire_wear + track_data['tdr'] * tire_mult, 100)
+
+    slowdown = safety_car_effect(lap, sc_periods)
+    base_laptime = lap_time(tire_wear, tire_comp, rain,
+                            fuel, track_data)  # ✅ FIXED
+    laptime = base_laptime * slowdown
+
+    fuel_save = 0.6 if slowdown > 1.0 else 1.0
+    fuel_burn_per_sec = track_data['fbph'] / 3600
+    fuel -= fuel_burn_per_sec * laptime * fuel_save
+    fuel = max(fuel, 0)
+
+    return tire_wear, fuel, laptime
+
+
 def wear(lap_no):
-    """FIXED: Realistic tire wear progression"""
     if lap_no <= 20:
         return lap_no * 1.5      # 1.5% per lap early
     elif lap_no <= 40:
@@ -15,23 +30,20 @@ def wear(lap_no):
 
 # 2. LAP TIME CALCULATOR - Single lap speed
 def lap_time(wear_pct, tire_comp, rain, fuel_kg, track_data):
-    """w = tire wear % (0-100). Returns lap time in SECONDS"""
-    # BASE LAP TIME (track-specific)
     base_time = track_data['base_lap']
-
     # FUEL PENALTY (heavy car = slow)
-    fuel_penalty = fuel_kg * 0.03  # 110kg = +3.3s, 50kg = +1.5s
-    lap_time = base_time + fuel_penalty  # Start with base + fuel
+    fuel_penalty = fuel_kg * 0.03
+    lap_time = base_time + fuel_penalty
 
     # TIRE WEAR PENALTY
     if 0 <= wear_pct <= 30:
-        pass  # Fresh tires = no penalty
+        pass
     elif 30 < wear_pct <= 70:
-        penalty = (wear_pct - 30) * 0.1  # 50% wear = +2s
+        penalty = (wear_pct - 30) * 0.1
         lap_time += penalty
-    else:  # >70% wear
-        base_penalty = 4   # 70% wear penalty
-        extra_penalty = (wear_pct - 70) * 0.3  # 90% = +7s total
+    else:
+        base_penalty = 4
+        extra_penalty = (wear_pct - 70) * 0.3
         lap_time += base_penalty + extra_penalty
 
     # TIRE COMPOUND FACTORS
@@ -46,7 +58,7 @@ def lap_time(wear_pct, tire_comp, rain, fuel_kg, track_data):
 
     # RAIN EFFECTS
     if tire_comp in ['SOFT', 'MEDIUM', 'HARD']:  # Wrong tires in rain
-        lap_time += rain * 4  # 0.5 rain = +2s
+        lap_time += rain * 4
     elif tire_comp in ['INTERMEDIATE', 'WET'] and rain < 0.3:
         # Wet tires on drying track
         lap_time += (0.3 - rain) * 3
@@ -64,26 +76,18 @@ def safety_car_periods(total_laps):
 
     for _ in range(num_sc):
         start_lap = random.randint(10, total_laps - 8)  # Anywhere lap 10+
-        duration = random.randint(3, 6)  # Real SC = 3-6 laps
+        duration = random.randint(3, 6)
         sc_events.extend(range(start_lap, min(
             start_lap + duration, total_laps)))
 
-    return set(sc_events)  # Unique SC laps
+    return set(sc_events)
 
 
 def safety_car_effect(lap, sc_periods):
-    """Returns slowdown factor for THIS lap"""
-    if lap in sc_periods:
-        return 1.40  # Full SC = 40% slower (real F1)
-    return 1.0  # Green flag
+    return 1.4 if sc_periods and lap in sc_periods else 1.0
 
 
-# 3. FULL RACE SIMULATOR - Complete race with pits
 def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0, verbose=0, fixed_sc=None):
-    """
-    pit_laps = [18, 37]  # Pit on lap 18 + 37
-    Returns: (total_race_time, lap_numbers, cumulative_times, fuel_history)
-    """
     track_data = F1_CONFIG[track_name]
     total_laps = track_data['laps']
 
@@ -95,32 +99,29 @@ def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0, verbose=0,
     total_time = 0
     tire_wear = 0        # Resets on pit stops
     fuel = track_data['fuel_tank']
+    current_tire_comp = tire_comp
     lap_numbers = []
     cumulative_times = []
     fuel_history = []
 
     # Simulate every lap
     for lap in range(1, track_data['laps'] + 1):
-        # TIRE WEAR (lap-by-lap degradation)
         tire_mult = TIRE_MULTIPLIERS.get(tire_comp, 1.0)
         track_wear_rate = track_data['tdr'] * tire_mult  # Track-specific
         tire_wear = min(tire_wear + track_wear_rate, 100)
 
-        # FUEL CONSUMPTION - Real F1 (SC saves fuel)
-        """SC laps = lift throttle + low RPM = 40% less fuel
-        1.0     kg/lap → 0.6 kg/lap during SC"""
         slowdown = safety_car_effect(lap, sc_periods)
-        fuel_save = 0.6 if slowdown > 1.0 else 1.0  # SC = 40% less fuel burn
-        fuel -= (track_data['fbph'] / 60) * fuel_save
+        base_laptime = lap_time(
+            tire_wear, current_tire_comp, rain, fuel, track_data)
+        laptime = base_laptime * slowdown
+        total_time += laptime
+
+        fuel_save = 0.6 if slowdown > 1.0 else 1.0
+        fuel_burn_per_sec = track_data['fbph'] / 3600
+        fuel -= fuel_burn_per_sec * laptime * fuel_save
         fuel = max(fuel, 0)
 
-        # RECORD FUEL (clean display)
         fuel_history.append(max(fuel, 0))  # No negative fuel
-
-        # CALCULATE LAP TIME
-        base_laptime = lap_time(tire_wear, tire_comp, rain, fuel, track_data)
-        laptime = base_laptime*slowdown  # Start with green flag lap
-        total_time += laptime
 
         # PIT STOP
 
@@ -128,15 +129,9 @@ def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0, verbose=0,
             tire_wear = 0
             pit_time = track_data['pit_time']  # Always 25s - real physics
 
-            """track_data['base_lap'] = 85s (Silverstone record)
-                slowdown = 1.40 (SC)
-                delta = 85 * 0.40 = 34s (field extra time)
-                pit_time = 25s
-                effective_pit = max(25 - 34, 12.0) = 12.0s """
             if slowdown > 1.0:
-                # REAL F1: Use track base lap (not worn lap)
-                track_base = track_data['base_lap']  # 85s Silverstone
-                delta = track_base * (slowdown - 1)  # 85 * 0.40 = 34s
+                track_base = track_data['base_lap']
+                delta = track_base * (slowdown - 1)
                 # safety clamp
                 effective_pit = max(pit_time - delta, 12.0)
                 total_time += effective_pit
@@ -148,19 +143,14 @@ def race_simulation(pit_laps, track_name, tire_comp="SOFT", rain=0.0, verbose=0,
                 if verbose:
                     print(f"Lap {lap}: Normal PIT ({pit_time}s)")
 
-        # RECORD THIS LAP
         lap_numbers.append(lap)
         cumulative_times.append(total_time)
 
     return total_time, lap_numbers, cumulative_times, fuel_history
 
 
-# 4. STRATEGY GENERATOR - All possible pit combinations
+# STRATEGY GENERATOR - All possible pit combinations
 def generate_strategies(num_stops):
-    """
-    num_stops=2 → Returns 300+ strategies: [[15,32], [16,33], [15,33], ...]
-    Realistic ranges only (no lap 1 pits, min 12 laps between stops)
-    """
     strategies = []
 
     if num_stops == 1:
