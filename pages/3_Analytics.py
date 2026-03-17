@@ -179,6 +179,9 @@ with tab2:
             }
 
     # ── Display results ───────────────────────────────────────────────────────
+    if results_key not in st.session_state or times_key not in st.session_state:
+        st.stop()
+
     r = st.session_state[results_key]
     time_data = st.session_state[times_key]
     best_times = time_data["best"]
