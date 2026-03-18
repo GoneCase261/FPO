@@ -5,7 +5,7 @@ import os
 from collections import Counter
 from utils.f1_config import F1_CONFIG
 from utils import race_simulation, safety_car_periods
-from qlearning import F1QAgent, get_agent_for_track, run_race_with_ai, race_standings
+from qlearning import F1QAgent, run_race_with_ai, race_standings
 
 st.set_page_config(layout="wide", page_title="F1 Pit Strategy AI")
 
@@ -122,7 +122,7 @@ if agent_key not in st.session_state:
     status = st.empty()
     chart_slot = st.empty()
 
-    agent = get_agent_for_track(track)
+    agent = F1QAgent()
     best_time = float('inf')
     best_times = []
     actual_times = []
