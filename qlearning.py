@@ -15,16 +15,16 @@ POSITION_REWARD = {1: 500, 2: 300, 3: 200, 4: 120, 5: 60, 6: -100}
 
 
 class F1QAgent:
-    def __init__(self):
+    def __init__(self, epsilon_decay=0.9997, alpha_decay=0.995, epsilon_min=0.05, gamma=0.95):
         self.q_table = {}
         self.alpha = 0.2
         self.initial_alpha = 0.2
         self.alpha_min = 0.02
-        self.alpha_decay = 0.995
-        self.gamma = 0.95
+        self.alpha_decay = alpha_decay
+        self.gamma = gamma
         self.epsilon = 1.0
-        self.epsilon_min = 0.05
-        self.epsilon_decay = 0.9997
+        self.epsilon_min = epsilon_min
+        self.epsilon_decay = epsilon_decay
 
     def get_state(self, lap, tire_wear, current_compound="SOFT", pit_count=0, fuel=110, sc_active=False):
         lap_bucket = lap // 3
@@ -124,10 +124,10 @@ def race_standings(pit_strategies, track="Silverstone_Fast", fixed_sc=None, ai_c
     if evaluation_mode:
         # Fixed opponents for fair championship evaluation
         opponents = {
-            "RedBull":  {"pits": [20, 38], "compound": "HARD"},
+            "RedBull":  {"pits": [20, 40], "compound": "HARD"},
+            "Mercedes": {"pits": [19, 39], "compound": "HARD"},
             "Ferrari":  {"pits": [16, 32], "compound": "SOFT"},
             "McLaren":  {"pits": [22, 40], "compound": "MEDIUM"},
-            "Mercedes": {"pits": [19, 36], "compound": "HARD"},
             "Aston":    {"pits": [25, 42], "compound": "MEDIUM"},
         }
     else:
@@ -169,11 +169,27 @@ def race_standings(pit_strategies, track="Silverstone_Fast", fixed_sc=None, ai_c
     return standings, positions, pos_score
 
 
+def get_agent_for_track(track):
+    if track == "Monaco_Street":
+        return F1QAgent(
+            epsilon_decay=0.999992,
+            alpha_decay=0.99996,
+            epsilon_min=0.10,
+            gamma=0.99
+        )
+    else:
+        return F1QAgent()
+
+
 def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fixed_sc=None):
     track_data = F1_CONFIG[track]
     total_laps = track_data['laps']
-    PIT_WINDOW_START = max(15, total_laps // 5)       # ~20% into race
-    PIT_WINDOW_END = total_laps - 15                # 15 laps before end
+    if track == "Monaco_Street":
+        PIT_WINDOW_START = 20
+        PIT_WINDOW_END = 60
+    else:
+        PIT_WINDOW_START = max(15, total_laps // 5)
+        PIT_WINDOW_END = total_laps - 15            # 15 laps before end
     pit_laps = []
     tire_wear = 0
     fuel = track_data['fuel_tank']
@@ -229,11 +245,22 @@ def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fix
             if compounds[action] == current_compound:
                 step_reward -= 20
 
-            step_reward += 8 if tire_wear > 65 else -8
+            if track == "Monaco_Street":
+                if tire_wear > 75:
+                    step_reward += 25
+                elif tire_wear > 60:
+                    step_reward += 10
+                elif tire_wear > 40:
+                    step_reward += 0
+                else:
+                    step_reward -= 15
+            else:
+                step_reward += 8 if tire_wear > 65 else -8
             stint_length = lap - (pit_laps[-1][0] if pit_laps else 0)
             if stint_length < 15:
                 step_reward -= 20
-
+            if track == "Monaco_Street" and len(pit_laps) == 1 and lap < 45:
+                step_reward -= 30
             tire_wear_next = 0
             compound_next = compounds[action]
             pit_count_next += 1

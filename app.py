@@ -5,7 +5,7 @@ import os
 from collections import Counter
 from utils.f1_config import F1_CONFIG
 from utils import race_simulation, safety_car_periods
-from qlearning import F1QAgent, run_race_with_ai, race_standings
+from qlearning import F1QAgent, get_agent_for_track, run_race_with_ai, race_standings
 
 st.set_page_config(layout="wide", page_title="F1 Pit Strategy AI")
 
@@ -107,8 +107,7 @@ times_key = f"ai_times_{track}"
 
 episodes_map = {
     "Spa_LongWet":      100_000,
-    "Silverstone_Fast": 125_000,
-    "Monaco_Street":    175_000,
+    "Silverstone_Fast": 100_000,
 }
 EPISODES = episodes_map.get(track, 100_000)
 
@@ -123,7 +122,7 @@ if agent_key not in st.session_state:
     status = st.empty()
     chart_slot = st.empty()
 
-    agent = F1QAgent()
+    agent = get_agent_for_track(track)
     best_time = float('inf')
     best_times = []
     actual_times = []
@@ -183,8 +182,10 @@ if agent_key in st.session_state and results_key not in st.session_state:
             strategy, time, _ = run_race_with_ai(
                 agent, track, evaluation_mode=True, fixed_sc=race_sc)
             sim_pit_laps = [lap for lap, _ in strategy]
-            _, positions, _ = race_standings(
+            standings, positions, _ = race_standings(
                 sim_pit_laps, track=track, fixed_sc=race_sc, ai_time=time, evaluation_mode=True)
+            if race < 3:  # only show first 3 races
+                st.write(f"Race {race}:", standings)
             ai_positions.append(positions["AI"])
 
         for _ in range(30):

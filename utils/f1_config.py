@@ -2,15 +2,6 @@
 # fbph = fuel burn per hour (kg/h)
 
 F1_CONFIG = {
-    "Monaco_Street": {
-        "laps":         78,
-        "base_lap":     78.5,     # Slow street circuit
-        "tdr":           2.8,     # Highest wear — stop-go corners
-        "fbph":         115,      # High fuel burn — stop-go traffic
-        "pit_time":      25,      # Seconds lost in pits
-        "fuel_tank":    110,      # kg
-        "default_tire": "SOFT",   # Low speeds, tires don't overheat
-    },
     "Silverstone_Fast": {
         "laps":         52,
         "base_lap":     85.2,     # High-speed sweeping corners
