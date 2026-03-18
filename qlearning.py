@@ -10,8 +10,6 @@ from utils import (
     safety_car_effect,
 )
 
-PIT_WINDOW_START = 15
-PIT_WINDOW_END = 45
 NO_PIT = 3
 POSITION_REWARD = {1: 500, 2: 300, 3: 200, 4: 120, 5: 60, 6: -100}
 
@@ -120,14 +118,34 @@ def simulate_opponent(pit_plan, compound, track, fixed_sc):
     return total_time
 
 
-def race_standings(pit_strategies, track="Silverstone_Fast", fixed_sc=None, ai_compound="MEDIUM", ai_time=None):
-    opponents = {
-        "RedBull":  {"pits": [20, 38], "compound": "HARD"},
-        "Ferrari":  {"pits": [16, 32], "compound": "SOFT"},
-        "McLaren":  {"pits": [22, 40], "compound": "MEDIUM"},
-        "Mercedes": {"pits": [19, 36], "compound": "HARD"},
-        "Aston":    {"pits": [25, 42], "compound": "MEDIUM"},
-    }
+def race_standings(pit_strategies, track="Silverstone_Fast", fixed_sc=None, ai_compound="MEDIUM", ai_time=None, evaluation_mode=False):
+    compounds = ["SOFT", "MEDIUM", "HARD"]
+
+    if evaluation_mode:
+        # Fixed opponents for fair championship evaluation
+        opponents = {
+            "RedBull":  {"pits": [20, 38], "compound": "HARD"},
+            "Ferrari":  {"pits": [16, 32], "compound": "SOFT"},
+            "McLaren":  {"pits": [22, 40], "compound": "MEDIUM"},
+            "Mercedes": {"pits": [19, 36], "compound": "HARD"},
+            "Aston":    {"pits": [25, 42], "compound": "MEDIUM"},
+        }
+    else:
+        # Randomized opponents during training for generalization
+        base = {
+            "RedBull":  {"pits": [20, 38], "compound": "HARD"},
+            "Ferrari":  {"pits": [16, 32], "compound": "SOFT"},
+            "McLaren":  {"pits": [22, 40], "compound": "MEDIUM"},
+            "Mercedes": {"pits": [19, 36], "compound": "HARD"},
+            "Aston":    {"pits": [25, 42], "compound": "MEDIUM"},
+        }
+        opponents = {
+            team: {
+                "pits": [max(10, p + random.randint(-3, 3)) for p in data["pits"]],
+                "compound": random.choice(compounds)
+            }
+            for team, data in base.items()
+        }
 
     if ai_time is not None:
         all_times = {"AI": ai_time}
@@ -153,10 +171,13 @@ def race_standings(pit_strategies, track="Silverstone_Fast", fixed_sc=None, ai_c
 
 def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fixed_sc=None):
     track_data = F1_CONFIG[track]
+    total_laps = track_data['laps']
+    PIT_WINDOW_START = max(15, total_laps // 5)       # ~20% into race
+    PIT_WINDOW_END = total_laps - 15                # 15 laps before end
     pit_laps = []
     tire_wear = 0
     fuel = track_data['fuel_tank']
-    current_compound = "MEDIUM"
+    current_compound = track_data['default_tire']
     total_race_time = 0
 
     if fixed_sc is None:
@@ -247,6 +268,7 @@ def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fix
         fixed_sc=fixed_sc,
         ai_compound=first_compound,
         ai_time=total_race_time,
+        evaluation_mode=evaluation_mode,
     )
 
     final_reward = calculate_reward(
@@ -268,41 +290,48 @@ def run_race_with_ai(agent, track="Silverstone_Fast", evaluation_mode=False, fix
 
 def train_ai(episodes=100000):
     agent = F1QAgent()
-    best_time = float('inf')
+    best_times = {track: float('inf') for track in F1_CONFIG}
     best_strategy = []
     episode_times = []
-    epsilon_history = []
+    qtable_sizes = []
 
-    print("🧠 Training AI Strategist...")
+    tracks = list(F1_CONFIG.keys())
+    print("🧠 Training AI Strategist across all tracks...")
 
     for episode in range(episodes):
+        # Rotate tracks randomly each episode
+        track = random.choice(tracks)
+
         if episode % 10 == 0:
-            fixed_sc = safety_car_periods(
-                F1_CONFIG["Silverstone_Fast"]['laps'])
+            fixed_sc = safety_car_periods(F1_CONFIG[track]['laps'])
 
         strategy, race_time, _ = run_race_with_ai(
-            agent, "Silverstone_Fast", fixed_sc=fixed_sc)
+            agent, track, fixed_sc=fixed_sc)
         sim_pit_laps = [lap for lap, comp in strategy]
         _, positions, pos_score = race_standings(
-            sim_pit_laps, fixed_sc=fixed_sc)
+            sim_pit_laps, track=track, fixed_sc=fixed_sc, evaluation_mode=False)
 
         if episode % 10000 == 0:
             strat_display = [f"L{lap}{comp[0]}" for lap, comp in strategy]
             print(
-                f"Ep {episode}: P{positions['AI']} | Score={pos_score:.2f} | {strat_display}")
+                f"Ep {episode} [{track}]: P{positions['AI']} | Score={pos_score:.2f} | {strat_display}")
 
-        if race_time < best_time:
-            best_time = race_time
+        if race_time < best_times[track]:
+            best_times[track] = race_time
             best_strategy = strategy
 
-        episode_times.append(best_time)
-        epsilon_history.append(agent.epsilon)
+        # Track overall best (Silverstone as reference)
+        episode_times.append(best_times.get("Silverstone_Fast", race_time))
 
-    return agent, best_strategy, best_time, episode_times, epsilon_history
+        # Track Q-table growth every 100 episodes
+        if episode % 100 == 0:
+            qtable_sizes.append(len(agent.q_table))
+
+    return agent, best_strategy, episode_times, qtable_sizes
 
 
 if __name__ == "__main__":
-    ai_agent, _, _, episode_times, _ = train_ai(100000)
+    ai_agent, _, episode_times, _ = train_ai(100000)
 
     ai_positions = []
     ai_times = []
@@ -348,7 +377,7 @@ if __name__ == "__main__":
     gain = human_time - final_time
 
     eval_standings, eval_positions, eval_pos_score = race_standings(
-        [18, 34], fixed_sc=eval_sc, ai_time=final_time
+        [18, 34], fixed_sc=eval_sc, ai_time=final_time, evaluation_mode=True
     )
 
     wins = sum(1 for p in ai_positions if p == 1)

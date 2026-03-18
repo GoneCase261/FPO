@@ -12,8 +12,9 @@ track = st.selectbox("🏁 Track:", list(F1_CONFIG.keys()))
 track_data = F1_CONFIG[track]
 
 lap_no = st.slider('Lap Progress:', 0, track_data['laps'], 20)
-tire_comp = st.selectbox(
-    "Tire compound:", ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"])
+compounds = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"]
+tire_comp = st.selectbox("Tire compound:", compounds,
+                         index=compounds.index(track_data['default_tire']))
 rain = st.slider("Rain intensity", 0.0, 1.0, 0.0, 0.1)
 
 col1, col2 = st.columns([3, 1])
@@ -60,10 +61,29 @@ st.caption("You choose your pit laps. The AI picks its own. Same track, same saf
 
 total_laps = track_data['laps']
 
-# Generate SC once per track — locked until track changes or Race! is clicked
+# Generate SC once per track
 sc_key = f"sc_{track}"
+agent_key = f"ai_agent_{track}"
+
 if sc_key not in st.session_state:
     st.session_state[sc_key] = safety_car_periods(total_laps)
+
+# Train agent eagerly when track is selected — so Race! is instant
+if agent_key not in st.session_state:
+    episodes_map = {
+        "Spa_LongWet":      100_000,
+        "Silverstone_Fast": 125_000,
+        "Monaco_Street":    175_000,
+    }
+    EPISODES = episodes_map.get(track, 100_000)
+    with st.spinner(f"🧠 Training AI on {track}..."):
+        agent = F1QAgent()
+        fixed_sc = safety_car_periods(total_laps)
+        for episode in range(EPISODES):
+            if episode % 10 == 0:
+                fixed_sc = safety_car_periods(total_laps)
+            run_race_with_ai(agent, track, fixed_sc=fixed_sc)
+        st.session_state[agent_key] = agent
 
 col1, col2 = st.columns(2)
 with col1:
@@ -92,20 +112,7 @@ if st.button("🏁 Race!", type="primary"):
         human_pits, track, tire_comp=snap_tire, rain=snap_rain, fixed_sc=shared_sc
     )
 
-    # ── AI race — train if not cached ────────────────────────────────────────
-    agent_key = f"ai_agent_{track}"
-
-    if agent_key not in st.session_state:
-        with st.spinner(f"🧠 Training AI on {track} first — hang tight..."):
-            EPISODES = 100_000
-            agent = F1QAgent()
-            fixed_sc = safety_car_periods(total_laps)
-            for episode in range(EPISODES):
-                if episode % 10 == 0:
-                    fixed_sc = safety_car_periods(total_laps)
-                run_race_with_ai(agent, track, fixed_sc=fixed_sc)
-            st.session_state[agent_key] = agent
-
+    # ── AI race ──────────────────────────────────────────────────────────────
     agent = st.session_state[agent_key]
     ai_strategy, _, _ = run_race_with_ai(
         agent, track, evaluation_mode=True, fixed_sc=shared_sc

@@ -7,12 +7,14 @@ from utils.f1_config import F1_CONFIG
 st.header('🔬 Strategy Lab')
 
 num_stops = st.slider("Number of stops", 1, 4, 2)
-tire_comp = st.selectbox(
-    "Tire compound:", ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"])
-rain = st.slider("Rain intensity", 0.0, 1.0, 0.0, 0.1)
 track = st.selectbox("🏁 Track:", list(F1_CONFIG.keys()))
-
 track_data = F1_CONFIG[track]
+
+compounds = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"]
+tire_comp = st.selectbox("Tire compound:", compounds,
+                         index=compounds.index(track_data['default_tire']))
+rain = st.slider("Rain intensity", 0.0, 1.0, 0.0, 0.1)
+
 st.info(f"🏁 {track}: {track_data['laps']} laps")
 
 if 'top_strategies' not in st.session_state:

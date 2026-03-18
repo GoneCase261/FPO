@@ -82,7 +82,12 @@ with tab2:
 
     # ── Train if not cached for this track ───────────────────────────────────
     if agent_key not in st.session_state:
-        EPISODES = 100_000
+        episodes_map = {
+            "Spa_LongWet":      100_000,
+            "Silverstone_Fast": 125_000,
+            "Monaco_Street":    175_000,
+        }
+        EPISODES = episodes_map.get(track, 100_000)
         st.info(f"🧠 Training on {track} — runs once per track per session...")
         progress_bar = st.progress(0)
         status_text = st.empty()
@@ -138,7 +143,7 @@ with tab2:
                     agent, track, evaluation_mode=True, fixed_sc=race_sc)
                 sim_pit_laps = [lap for lap, comp in strategy]
                 _, positions, _ = race_standings(
-                    sim_pit_laps, track=track, fixed_sc=race_sc, ai_time=time)
+                    sim_pit_laps, track=track, fixed_sc=race_sc, ai_time=time, evaluation_mode=True)
                 ai_positions.append(positions["AI"])
                 ai_strategies.append(
                     [f"L{lap}{comp[0]}" for lap, comp in strategy])
