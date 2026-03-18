@@ -1,6 +1,16 @@
-# 🏎️ F1 Pit Optimizer
+# 🏎️ F1 Pit Strategy Optimizer
 
-A reinforcement learning-powered F1 race strategy simulator built with Streamlit and Q-learning.
+A reinforcement learning agent that learns to outrace human strategies through 100,000+ simulated races — built entirely from scratch.
+
+---
+
+## 🧠 What is this?
+
+**Problem:** When should an agent act when future conditions are uncertain?
+
+**Approach:** Train an AI through thousands of simulated races, learning from wins, losses, and random disruptions like safety cars.
+
+**Result:** An agent that beats static human strategies by adapting to conditions no rule can predict.
 
 ---
 
@@ -8,20 +18,14 @@ A reinforcement learning-powered F1 race strategy simulator built with Streamlit
 
 ```
 FPO/
-├── app.py                  # Home page — summary metrics
-├── qlearning.py            # Q-learning agent — train & evaluate
-├── strategies.csv          # Saved strategy results (auto-generated)
-├── results.json            # AI training output (auto-generated)
+├── app.py           # Entire project — one page, full story
+├── qlearning.py     # Q-Learning agent — training & evaluation
+├── requirements.txt
+├── .gitignore
 ├── README.md
-│
-├── pages/
-│   ├── 1_simulator.py      # Lap-by-lap simulator with real F1 data toggle
-│   ├── 2_strategy_lab.py   # Brute-force strategy ranker + CSV saver
-│   └── 3_analytics.py      # Strategy leaderboard + AI performance charts
-│
 └── utils/
-    ├── __init__.py         # Core physics: wear, lap time, race simulation
-    └── f1_config.py        # Track configs + tire multipliers
+    ├── __init__.py  # Core physics: tire wear, lap time, race simulation
+    └── f1_config.py # Track configs + tire multipliers
 ```
 
 ---
@@ -30,45 +34,43 @@ FPO/
 
 ### 1. Install dependencies
 ```bash
-pip install streamlit plotly fastf1 numpy pandas
+pip install -r requirements.txt
 ```
 
-### 2. Run the Streamlit app
+### 2. Run the app
 ```bash
 streamlit run app.py
 ```
 
-### 3. Train the AI agent
-```bash
-python qlearning.py
-```
-This trains over 100,000 episodes, runs a 500-race championship, and saves `results.json`.
-Open the **Analytics → 🤖 AI Performance** tab to view the results.
+### 3. How to use
+- Select a track
+- Hit **🧠 Train AI** — watch it learn live with a training curve
+- See championship results — win rate, avg finish, AI vs human time
+- Hit **🏁 Race!** — pick your own pit laps and race the AI head-to-head
 
 ---
 
 ## 🏁 Tracks
 
-| Track            | Laps | Base Lap | Tire Wear |
-|------------------|------|----------|-----------|
-| Monaco_Street    | 78   | 78.5s    | High      |
-| Silverstone_Fast | 52   | 85.2s    | Medium    |
-| Spa_LongWet      | 44   | 96.1s    | Medium    |
+| Track            | Laps | Base Lap | Tire Wear | Default Tire |
+|------------------|------|----------|-----------|--------------|
+| Silverstone_Fast | 52   | 85.2s    | Medium    | MEDIUM       |
+| Spa_LongWet      | 44   | 96.1s    | Medium    | MEDIUM       |
 
 ---
 
 ## 🧠 How the AI Works
 
-The Q-learning agent learns pit stop timing by:
 - **State**: lap number, tire wear, compound, pit count, fuel level, safety car status
-- **Actions**: pit on SOFT / MEDIUM / HARD / no pit
-- **Reward**: combination of lap time, finishing position vs 5 opponents, tire management
-- **Training**: 100,000 episodes with ε-greedy exploration and decaying learning rate
+- **Actions**: pit on SOFT / MEDIUM / HARD / don't pit
+- **Reward**: lap time performance + finishing position vs 5 opponents + tire management
+- **Training**: ε-greedy exploration with decaying learning rate over 100,000 episodes
+- **Evaluation**: 500-race championship against 5 fixed opponents with random safety car events
+
+The agent learned this strategy on its own — no pit rules were programmed.
 
 ---
 
-## 📊 Pages
+## ⚙️ Tech Stack
 
-- **Simulator** — adjust lap, compound, rain and see simulated vs real Verstappen lap times
-- **Strategy Lab** — brute-force all pit strategies for a track, rank by total race time, save top 5
-- **Analytics** — track leaderboard from saved strategies + AI training charts
+Python · Streamlit · Q-Learning · Plotly · FastF1 · NumPy
