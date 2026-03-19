@@ -18,28 +18,12 @@ st.markdown("""
 
 html, body, [class*="css"] { font-family: 'DM Mono', monospace; }
 
-/* ── DOMINANT ELEMENTS (eyes go here first) ── */
 .hero-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 4.2rem; font-weight: 900;
     line-height: 1.05; color: #B4D3D9; margin: 0;
 }
 .hero-accent { color: #e8002d; }
-.stat-number {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 3.5rem; font-weight: 900; color: #21E6C1; line-height: 1;
-}
-.win-banner {
-    text-align: center; padding: 1.5rem;
-    border-radius: 8px; margin: 1rem 0;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 2rem; font-weight: 900;
-}
-.win  { background: #0a1f0a; color: #4caf50; border: 1px solid #2a5a2a; }
-.lose { background: #1f0a0a; color: #e8002d; border: 1px solid #5a2a2a; }
-.draw { background: #1a1a0a; color: #ffd700; border: 1px solid #5a5a2a; }
-
-/* ── SUPPORTING ELEMENTS (readable but not dominant) ── */
 .hero-sub {
     font-size: 0.7rem; color: #6984A9;
     letter-spacing: 3px; text-transform: uppercase; margin-top: 0.6rem;
@@ -48,35 +32,35 @@ html, body, [class*="css"] { font-family: 'DM Mono', monospace; }
     font-size: 0.95rem; color: #8BAFC4; margin-top: 1rem; line-height: 1.6;
 }
 .scale-stat {
-    font-size: 0.82rem; color: #3DC2EC; margin-top: 0.5rem;
-    font-style: italic; line-height: 1.6;
+    font-size: 0.82rem; color: #3DC2EC; margin-top: 0.5rem; font-style: italic;
 }
 .plain-english {
     background: #234C6A; border-left: 6px solid #132440;
     padding: 1.2rem 1.5rem; border-radius: 4px;
     font-size: 0.88rem; color: #bbb; line-height: 2.0; margin: 1.2rem 0;
 }
+.watch-banner {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2.2rem; font-weight: 900; color: #21E6C1;
+    text-align: center; padding: 1rem;
+    background: #0a1f2a; border: 1px solid #1a4a6a;
+    border-radius: 8px; margin: 1rem 0; letter-spacing: 2px;
+}
 .info-card {
     background: #0f1a2a; border: 1px solid #1e3a5a;
-    border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1rem 0;
-    font-size: 0.82rem; color: #7A9AB2; line-height: 2.0;
+    border-radius: 8px; padding: 1rem 1.4rem; margin: 1rem 0;
+    font-size: 0.85rem; color: #7A9AB2; line-height: 2.0;
 }
 .info-card-title {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 1rem; font-weight: 700;
-    color: #3DC2EC; letter-spacing: 1px; margin-bottom: 0.5rem;
-}
-.how-learn-block {
-    background: #0d1f2d; border: 1px solid #1a3a52;
-    border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1rem 0;
-    font-size: 0.82rem; color: #7A9AB2; line-height: 2.2;
-}
-.how-learn-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem; font-weight: 700;
-    color: #21E6C1; letter-spacing: 1px; margin-bottom: 0.5rem;
+    color: #3DC2EC; letter-spacing: 1px; margin-bottom: 0.4rem;
 }
 .stat-block { text-align: center; padding: 1rem 0; }
+.stat-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 3.5rem; font-weight: 900; color: #21E6C1; line-height: 1;
+}
 .stat-label {
     font-size: 0.75rem; color: #3DC2EC;
     text-transform: uppercase; letter-spacing: 2px; margin-top: 0.3rem;
@@ -90,52 +74,46 @@ html, body, [class*="css"] { font-family: 'DM Mono', monospace; }
     text-align: center; font-size: 0.8rem; color: #5A7A8A;
     font-style: italic; margin: 0.5rem 0; line-height: 1.6;
 }
+.win-banner {
+    text-align: center; padding: 1.5rem; border-radius: 8px; margin: 1rem 0;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 900;
+}
+.win  { background: #0a1f0a; color: #4caf50; border: 1px solid #2a5a2a; }
+.lose { background: #1f0a0a; color: #e8002d; border: 1px solid #5a2a2a; }
+.draw { background: #1a1a0a; color: #ffd700; border: 1px solid #5a5a2a; }
 .insight {
     background: #0a0a0a; border: 1px solid #1a1a1a;
     border-radius: 6px; padding: 1rem 1.4rem;
     font-size: 0.8rem; color: #999; margin-top: 0.8rem; line-height: 1.7;
 }
-.challenge-block {
-    background: #0d1a0d; border: 1px solid #1a3a1a;
-    border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1rem 0;
-    font-size: 0.82rem; color: #7A9B7A; line-height: 2.2;
-}
-.challenge-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem; font-weight: 700;
-    color: #4caf50; letter-spacing: 1px; margin-bottom: 0.5rem;
-}
 .ownership-block {
     background: #0f0f0f; border: 1px solid #2a2a2a;
     border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1rem 0;
-    font-size: 0.82rem; color: #888; line-height: 2.2;
+    font-size: 0.85rem; color: #888; line-height: 2.2;
 }
 .ownership-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem; font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 700;
     color: #B4D3D9; letter-spacing: 1px; margin-bottom: 0.5rem;
 }
 .takeaway-block {
     background: #0f0f1a; border: 1px solid #1a1a3a;
     border-radius: 8px; padding: 1.2rem 1.5rem; margin: 1rem 0;
-    font-size: 0.82rem; color: #8888BB; line-height: 2.2;
+    font-size: 0.85rem; color: #8888BB; line-height: 2.2;
 }
 .takeaway-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem; font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; font-weight: 700;
     color: #B4D3D9; letter-spacing: 1px; margin-bottom: 0.5rem;
 }
 .tech-stack {
-    text-align: center; font-size: 0.65rem;
-    color: #4C5F7A; letter-spacing: 2px;
-    text-transform: uppercase; margin-top: 3rem;
+    text-align: center; font-size: 0.65rem; color: #4C5F7A;
+    letter-spacing: 2px; text-transform: uppercase; margin-top: 3rem;
     padding-top: 1.5rem; border-top: 1px solid #111;
 }
 .divider { border: none; border-top: 1px solid #1a1a1a; margin: 2rem 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── 1. HERO ───────────────────────────────────────────────────────────────────
+# ── HERO ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero-title">
     Can an AI learn to<br>
@@ -160,42 +138,28 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# How the AI learns
-st.markdown("""
-<div class="how-learn-block">
-    <div class="how-learn-title">🧠 How the AI Learns</div>
-    🏎️&nbsp; Takes an action — swap tires now or stay out<br>
-    📉&nbsp; Observes the race result — was that the right call?<br>
-    🔁&nbsp; Updates its strategy — do better next time<br>
-    ✅&nbsp; Repeats 100,000+ times until it stops improving
-</div>
-""", unsafe_allow_html=True)
-
 st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
-# ── TRACK SELECTOR + TRAIN ────────────────────────────────────────────────────
-st.markdown("### 🏁 Select a Track — Watch the AI Learn")
+# ── TRACK SELECTOR ────────────────────────────────────────────────────────────
+st.markdown("### 🏁 Select a Track")
 
 col1, col2 = st.columns([2, 1])
 with col1:
     track = st.selectbox("", list(F1_CONFIG.keys()),
                          label_visibility="collapsed")
 with col2:
+    # Disable button if already training or already trained
+    already_trained = f"ai_agent_{track}" in st.session_state
     train_clicked = st.button(
-        "🧠 Train AI", type="primary", use_container_width=True)
+        "✅ Trained!" if already_trained else "🧠 Train AI",
+        type="primary",
+        use_container_width=True,
+        disabled=already_trained or st.session_state.get(
+            "training_in_progress", False),
+    )
 
 track_data = F1_CONFIG[track]
 total_laps = track_data['laps']
-
-st.markdown("""
-<div class="info-card">
-    <div class="info-card-title">🧭 What you are seeing</div>
-    🎲&nbsp; The AI trained by simulating thousands of races on this track<br>
-    🔁&nbsp; It learned when to swap tires by trial and error — no rules programmed<br>
-    ⚡&nbsp; Every race below uses new random conditions (safety car, tire degradation, fuel burn)<br>
-    🤖&nbsp; You are competing against a learned strategy — not prewritten logic
-</div>
-""", unsafe_allow_html=True)
 
 agent_key = f"ai_agent_{track}"
 results_key = f"ai_results_{track}"
@@ -208,12 +172,26 @@ episodes_map = {
 EPISODES = episodes_map.get(track, 100_000)
 
 if train_clicked:
+    st.session_state["training_in_progress"] = True
     for key in [agent_key, results_key, times_key]:
         if key in st.session_state:
             del st.session_state[key]
 
-# ── TRAINING ──────────────────────────────────────────────────────────────────
-if agent_key not in st.session_state:
+# ── TRAINING — only if button was clicked ─────────────────────────────────────
+if train_clicked or (st.session_state.get("training_in_progress", False) and agent_key not in st.session_state):
+
+    st.markdown('<div class="watch-banner">👀 WATCH THE AI LEARN!</div>',
+                unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-card-title">🧭 What's happening</div>
+        🎲&nbsp; Simulating thousands of races with random safety cars &amp; tire degradation<br>
+        🔁&nbsp; AI learns when to swap tires through trial and error — no rules programmed<br>
+        📉&nbsp; Watch the red line drop — every dip = a better strategy discovered
+    </div>
+    """, unsafe_allow_html=True)
+
     progress_bar = st.progress(0)
     status = st.empty()
     chart_slot = st.empty()
@@ -258,9 +236,11 @@ if agent_key not in st.session_state:
 
     progress_bar.progress(100)
     status.markdown(
-        f"✅ **Training complete!** The AI just ran **{EPISODES:,} simulated races** to learn this strategy — no rules were programmed.")
+        f"✅ **Done!** Ran **{EPISODES:,} simulated races** — no rules were programmed.")
     st.session_state[agent_key] = agent
     st.session_state[times_key] = {"best": best_times, "actual": actual_times}
+    st.session_state["training_in_progress"] = False
+    st.rerun()
 
 # ── 500 RACE CHAMPIONSHIP ─────────────────────────────────────────────────────
 if agent_key in st.session_state and results_key not in st.session_state:
@@ -320,7 +300,6 @@ if results_key in st.session_state and times_key in st.session_state:
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
     st.markdown("### 📊 Championship Results")
 
-    # Dominant stat block
     col1, col2, col3, col4 = st.columns(4)
     col1.markdown(f"""
         <div class="stat-block">
@@ -347,27 +326,19 @@ if results_key in st.session_state and times_key in st.session_state:
             <div class="stat-sub">pits {r['human_pits']}</div>
         </div>""", unsafe_allow_html=True)
 
-    # Killer line + bridge
     st.markdown("""
         <div class="killer-line">
-            Unlike brute-force optimization, the agent learns strategies that generalise
-            across unseen race conditions — random safety cars, varying tire wear, changing fuel loads.
+            Unlike brute-force optimization, the agent learns strategies that generalise across unseen conditions.
         </div>
         <div class="bridge-line">
-            The same decision-learning framework applies to finance, robotics, and real-world planning under uncertainty.
+            The same framework applies to finance, robotics, and real-world planning under uncertainty.
         </div>
     """, unsafe_allow_html=True)
 
-    # Training proof
+    # Training curve
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
     st.markdown("### 📈 Training Progress")
-    st.markdown("""
-        <div class="insight">
-            The AI started completely random — guessing when to swap tires with no knowledge.
-            The light line shows each individual race. The bold red line shows the best strategy found so far.
-            Watch how it gradually discovers better decisions and stops improving once it has learned all it can.
-        </div>
-    """, unsafe_allow_html=True)
+    st.caption("Started completely random. The red line shows the AI getting smarter — every dip is a better strategy discovered.")
 
     x = list(range(0, len(best_times) * 100, 100))
     fig = go.Figure()
@@ -385,15 +356,13 @@ if results_key in st.session_state and times_key in st.session_state:
     st.plotly_chart(fig, use_container_width=True)
 
     # Position distribution
-    st.markdown("### 🏁 Where Did the AI Finish?")
-    st.caption("Across 500 races with randomised safety cars and opponents.")
+    st.markdown("### 🏁 500-Race Finish Distribution")
     positions = r['all_positions']
     pos_counts = [positions.count(i) for i in range(1, 7)]
     pos_labels = ["P1 🏆", "P2", "P3", "P4", "P5", "P6"]
     colors = ["#0B2D72", "#0992C2", "#0AC4E0", "#F6E7BC", "#444", "#333"]
     fig2 = go.Figure(go.Bar(
-        x=pos_labels, y=pos_counts,
-        marker_color=colors,
+        x=pos_labels, y=pos_counts, marker_color=colors,
         text=pos_counts, textposition="outside",
         textfont=dict(color="#E9E9E9", size=11),
     ))
@@ -402,8 +371,7 @@ if results_key in st.session_state and times_key in st.session_state:
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
         yaxis=dict(showgrid=False, showticklabels=False),
         xaxis=dict(showgrid=False),
-        font=dict(color="#666", size=11),
-        showlegend=False,
+        font=dict(color="#666", size=11), showlegend=False,
     )
     st.plotly_chart(fig2, use_container_width=True)
 
@@ -412,50 +380,32 @@ if results_key in st.session_state and times_key in st.session_state:
         st.markdown("""
 **Algorithm:** Tabular Q-Learning
 
-**State Space:**
-- Lap number (bucketed every 3 laps)
-- Tire age (0–100% wear, bucketed)
-- Safety car active (yes / no)
-- Pit stop count
-- Fuel level (bucketed)
+**State:** lap number · tire wear · safety car · pit count · fuel level
 
-**Action Space:**
-- Pit on SOFT tire
-- Pit on MEDIUM tire
-- Pit on HARD tire
-- Stay out
+**Actions:** Pit on SOFT / MEDIUM / HARD / Stay out
 
-**Training:**
-- 100,000+ simulated races per track
-- ε-greedy exploration with decaying learning rate
-- Reward = finishing position vs 5 opponents + race time delta
+**Reward:** finishing position vs 5 opponents + race time delta
 
-**Physics Simulation:**
-- Tire degradation rate varies by compound and track
-- Fuel burn modelled per lap (kg/hour → per second)
-- Safety car periods randomised each race (0–2 events, 3–6 laps each)
-- Pit stop time realistically reduced under safety car
+**Physics:** tire degradation · fuel burn · safety car periods · pit stop cost
 
-**Why Reinforcement Learning?**
-Future race conditions are uncertain and cannot be solved with fixed rules.
-The agent must learn which decisions pay off across thousands of variable scenarios.
+**Why RL?** Future conditions are uncertain — fixed rules can't adapt. The agent learns which decisions pay off across thousands of variable scenarios.
         """)
 
-    # Engineering challenges
+    # Engineering challenges — SHORT
     st.markdown("""
-        <div class="challenge-block">
-            <div class="challenge-title">⚙️ Engineering Challenges</div>
-            🎲&nbsp; Non-deterministic environment — random safety cars mean no two races are identical<br>
-            🧠&nbsp; Strategy must generalise, not memorise — tested across 500 unseen race scenarios<br>
-            ⚡&nbsp; Large simulation cost — 100,000 full race simulations run efficiently in Python<br>
-            📊&nbsp; Learned policy vs brute-force — the agent competes against exhaustive search strategies
+        <div class="info-card">
+            <div class="info-card-title">⚙️ Engineering Challenges</div>
+            🎲&nbsp; Random safety cars — no two races are identical<br>
+            🧠&nbsp; Must generalise, not memorise — tested on 500 unseen scenarios<br>
+            📊&nbsp; Learned policy vs brute-force — agent competes against optimal search
         </div>
     """, unsafe_allow_html=True)
 
-    # ── DOMINANT: HUMAN vs AI RACE ────────────────────────────────────────────
+    # ── HUMAN vs AI ───────────────────────────────────────────────────────────
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
     st.markdown("### 🆚 Now Race It Yourself")
-    st.caption("Pick when to swap tires. The AI picks its own strategy. Same track, same random conditions — best decision wins.")
+    st.caption(
+        "Pick when to swap tires. The AI picks its own. Same track, same random conditions — best decision wins.")
 
     sc_key = f"sc_{track}"
     if sc_key not in st.session_state:
@@ -509,9 +459,9 @@ The agent must learn which decisions pay off across thousands of variable scenar
 
         col1, col2, col3 = st.columns(3)
         col1.metric("👤 You",  f"{res['human_time']:.1f}s",
-                    f"Tire swaps: {res['human_pits']}")
+                    f"Swaps: {res['human_pits']}")
         col2.metric("🤖 AI",   f"{res['ai_time']:.1f}s",
-                    f"Tire swaps: {res['ai_pits']}")
+                    f"Swaps: {res['ai_pits']}")
         col3.metric("Gap",     f"{gap_abs:.1f}s",
                     "You win! 🏆" if gap < 0 else "AI wins 🤖")
 
@@ -525,34 +475,33 @@ The agent must learn which decisions pay off across thousands of variable scenar
             st.markdown(
                 '<div class="win-banner draw">🤝 Dead heat!</div>', unsafe_allow_html=True)
 
-        # What just happened
         sc_laps = res["sc_laps"]
         h_stint2 = res["human_stint2"]
         ai_stint2 = res["ai_stint2"]
 
         if sc_laps:
-            sc_story = f"A random safety car slowed both drivers on lap {sc_laps[0]} — the AI was trained across thousands of races with moments like this, learning to turn disruptions into an advantage."
+            sc_story = f"Safety car on lap {sc_laps[0]} — the AI was trained on thousands of races with exactly these disruptions."
         else:
-            sc_story = "No safety car this race — pure strategy decided the outcome. No luck involved."
+            sc_story = "No safety car — pure strategy decided it."
 
         if ai_stint2 > h_stint2:
-            stint_story = f"The AI ran its final tire run {ai_stint2 - h_stint2} laps longer — it learned that holding out pays off more than swapping early."
+            stint_story = f"AI ran final tires {ai_stint2 - h_stint2} laps longer — it learned holding out pays off."
         elif ai_stint2 < h_stint2:
-            stint_story = f"You ran your final tire run {h_stint2 - ai_stint2} laps longer — more degradation in the closing laps cost you time when every second counted."
+            stint_story = f"You ran final tires {h_stint2 - ai_stint2} laps longer — degradation cost you in the closing laps."
         else:
-            stint_story = "Both strategies ran identical tire runs — the gap came down to the precise lap chosen to swap."
+            stint_story = "Identical tire runs — gap came down to precise swap timing."
 
         if gap_abs < 5:
-            gap_story = "An incredibly close race — fractions of a second across the entire distance."
+            gap_story = "Incredibly close — fractions of a second across the whole race."
         elif gap_abs < 30:
-            gap_story = f"A {gap_abs:.0f}s gap — roughly {gap_abs / track_data['base_lap']:.1f} laps worth of time lost to strategy alone."
+            gap_story = f"{gap_abs:.0f}s gap — roughly {gap_abs / track_data['base_lap']:.1f} laps of time lost to strategy."
         else:
-            gap_story = f"A dominant {gap_abs:.0f}s gap — the kind of margin that separates race winners from the midfield."
+            gap_story = f"Dominant {gap_abs:.0f}s gap — race-winning margin in real motorsport."
 
         st.markdown(f"""
             <div class="insight">
-                🎲 <b style="color:#ccc">Random conditions:</b> {sc_story}<br><br>
-                🔄 <b style="color:#ccc">Tire run strategy:</b> {stint_story}<br><br>
+                🎲 <b style="color:#ccc">Conditions:</b> {sc_story}<br><br>
+                🔄 <b style="color:#ccc">Strategy:</b> {stint_story}<br><br>
                 ⏱️ <b style="color:#ccc">The gap:</b> {gap_story}
             </div>
         """, unsafe_allow_html=True)
@@ -580,14 +529,13 @@ The agent must learn which decisions pay off across thousands of variable scenar
 
     # ── OWNERSHIP + TAKEAWAY ──────────────────────────────────────────────────
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
-
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("""
             <div class="ownership-block">
                 <div class="ownership-title">🛠️ Designed & Implemented</div>
                 ✔&nbsp; Custom race physics simulator<br>
-                ✔&nbsp; Reinforcement learning training loop<br>
+                ✔&nbsp; RL training loop from scratch<br>
                 ✔&nbsp; 500-race evaluation framework<br>
                 ✔&nbsp; Interactive deployment
             </div>
@@ -596,10 +544,10 @@ The agent must learn which decisions pay off across thousands of variable scenar
         st.markdown("""
             <div class="takeaway-block">
                 <div class="takeaway-title">💡 What this demonstrates</div>
-                🏗️&nbsp; Designing simulations from scratch<br>
-                🧠&nbsp; Training RL agents without libraries<br>
-                📊&nbsp; Evaluating learned vs optimal strategies<br>
-                🌐&nbsp; Turning complex ML into interactive systems
+                🏗️&nbsp; Simulation design from scratch<br>
+                🧠&nbsp; RL agent training without libraries<br>
+                📊&nbsp; Learned vs optimal strategy evaluation<br>
+                🌐&nbsp; Complex ML as interactive system
             </div>
         """, unsafe_allow_html=True)
 
