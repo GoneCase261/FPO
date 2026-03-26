@@ -20,14 +20,17 @@ A reinforcement learning agent that learns to outrace human strategies through 1
 The agent improves through reinforcement learning across 100,000+ races.
 
 ### Training Curve
-<img width="938" height="730" alt="Screenshot 2026-03-26 164314" src="https://github.com/user-attachments/assets/7ad539ac-0449-468c-80d0-a8ad6dc6a3d1" />
+<img width="938" height="399" alt="Screenshot 2026-03-26 164314" src="https://github.com/user-attachments/assets/0fb377e8-6cce-48c9-b2ab-283de30715e5" />
+
 ## 🏆 Results
 
 - ✅ Trained over 100,000 simulated races
 - 🏁 AI win rate: 75-85% vs fixed strategies (500-race evaluation)
 - 📉 Stable convergence after ε-decay phase
 
-<img width="884" height="594" alt="image" src="https://github.com/user-attachments/assets/4b2f911f-1eac-4d57-a59f-3b32b2488f7f" />
+<img width="884" height="338" alt="Screenshot 2026-03-26 164324" src="https://github.com/user-attachments/assets/2f55356b-7fb5-441a-931a-bb27da91855b" />
+
+<img width="914" height="341" alt="Screenshot 2026-03-26 164314(1)" src="https://github.com/user-attachments/assets/70cd73e6-5941-474d-9d6d-6d4da87f8787" />
 
 
 ## 📁 Project Structure
