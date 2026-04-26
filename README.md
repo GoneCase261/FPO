@@ -1,5 +1,7 @@
 # 🏎️ F1 Pit Strategy Optimizer
 
+*Live Demo:* https://gonecasesfpogit.streamlit.app/
+
 A reinforcement learning agent that learns to outrace human strategies through 100,000+ simulated races — built entirely from scratch.
 
 ---
